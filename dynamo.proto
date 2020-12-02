@@ -5,6 +5,7 @@ syntax = "proto3";
 // Package name definition, which can be omitted in Python.
 package dynamo;
 
+
 message GetRequest {
     int64 client_id = 1;
     int64 key = 2;
@@ -40,22 +41,13 @@ message PutResponse {
 }
 
 
-
-// `service` 是用来给gRPC服务定义方法的, 格式固定, 类似于Golang中定义一个接口
-// `service` is used to define methods for gRPC services in a fixed format, similar to defining
-//an interface in Golang
 service DynamoInterface {
-    // 一元模式(在一次调用中, 客户端只能向服务器传输一次请求数据, 服务器也只能返回一次响应)
-    // unary-unary(In a single call, the client can only send request once, and the server can
-    // only respond once.)
+
     rpc Put (PutRequest) returns (PutResponse);
 
     rpc Get (GetRequest) returns (GetResponse);
 
-    // client can put multiple requests 
     rpc PutStreaming (stream PutRequest) returns (stream PutResponse);
 
-    // client can get multiple requests
     rpc GetStreaming (stream GetRequest) returns (stream GetResponse);
-
 }

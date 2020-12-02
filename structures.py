@@ -29,8 +29,10 @@ class Params:
     The params that docate the dynamo instance configuration
     '''
     def __init__(self, d):
-        self.num_proc: int = None
-        self.positions = None
+        self.num_proc: int = None # number of dynamo instances in ring
+        self.Q: int = None # size of virtual node: should be a power of 2
+        self.hash_size: int =  None # number of bits in the hash of the key: hence key space in ring = 2^{hash_size}
+        self.N: int = None # the size of the preference list
         self.__dict__ = d
 
     def __repr__(self):
