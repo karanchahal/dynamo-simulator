@@ -15,27 +15,165 @@ _sym_db = _symbol_database.Default()
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='dynamo.proto',
-  package='',
+  package='dynamo',
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0c\x64ynamo.proto\"\x1c\n\x0cHelloRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\"\x1d\n\nHelloReply\x12\x0f\n\x07message\x18\x01 \x01(\t23\n\x07Greeter\x12(\n\x08SayHello\x12\r.HelloRequest\x1a\x0b.HelloReply\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x0c\x64ynamo.proto\x12\x06\x64ynamo\",\n\nGetRequest\x12\x11\n\tclient_id\x18\x01 \x01(\x03\x12\x0b\n\x03key\x18\x02 \x01(\x03\"3\n\x0fVectorClockItem\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\r\n\x05\x63ount\x18\x02 \x01(\x03\"5\n\x0bVectorClock\x12&\n\x05\x63lock\x18\x01 \x03(\x0b\x32\x17.dynamo.VectorClockItem\"q\n\nPutRequest\x12\x11\n\tclient_id\x18\x01 \x01(\x03\x12\x0b\n\x03key\x18\x02 \x01(\x03\x12\x0b\n\x03val\x18\x03 \x01(\t\x12$\n\x07\x63ontext\x18\x04 \x01(\x0b\x32\x13.dynamo.VectorClock\x12\x10\n\x08metadata\x18\x05 \x01(\t\"e\n\x0bGetResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x0b\n\x03val\x18\x02 \x01(\t\x12$\n\x07\x63ontext\x18\x03 \x01(\x0b\x32\x13.dynamo.VectorClock\x12\x10\n\x08metadata\x18\x04 \x01(\t\"2\n\x0bPutResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x10\n\x08metadata\x18\x02 \x01(\t2\xeb\x01\n\x0f\x44ynamoInterface\x12.\n\x03Put\x12\x12.dynamo.PutRequest\x1a\x13.dynamo.PutResponse\x12.\n\x03Get\x12\x12.dynamo.GetRequest\x1a\x13.dynamo.GetResponse\x12;\n\x0cPutStreaming\x12\x12.dynamo.PutRequest\x1a\x13.dynamo.PutResponse(\x01\x30\x01\x12;\n\x0cGetStreaming\x12\x12.dynamo.GetRequest\x1a\x13.dynamo.GetResponse(\x01\x30\x01\x62\x06proto3'
 )
 
 
 
 
-_HELLOREQUEST = _descriptor.Descriptor(
-  name='HelloRequest',
-  full_name='HelloRequest',
+_GETREQUEST = _descriptor.Descriptor(
+  name='GetRequest',
+  full_name='dynamo.GetRequest',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='name', full_name='HelloRequest.name', index=0,
-      number=1, type=9, cpp_type=9, label=1,
+      name='client_id', full_name='dynamo.GetRequest.client_id', index=0,
+      number=1, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='key', full_name='dynamo.GetRequest.key', index=1,
+      number=2, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=24,
+  serialized_end=68,
+)
+
+
+_VECTORCLOCKITEM = _descriptor.Descriptor(
+  name='VectorClockItem',
+  full_name='dynamo.VectorClockItem',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='dynamo.VectorClockItem.server_id', index=0,
+      number=1, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='count', full_name='dynamo.VectorClockItem.count', index=1,
+      number=2, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=70,
+  serialized_end=121,
+)
+
+
+_VECTORCLOCK = _descriptor.Descriptor(
+  name='VectorClock',
+  full_name='dynamo.VectorClock',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='clock', full_name='dynamo.VectorClock.clock', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=123,
+  serialized_end=176,
+)
+
+
+_PUTREQUEST = _descriptor.Descriptor(
+  name='PutRequest',
+  full_name='dynamo.PutRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='client_id', full_name='dynamo.PutRequest.client_id', index=0,
+      number=1, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='key', full_name='dynamo.PutRequest.key', index=1,
+      number=2, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='val', full_name='dynamo.PutRequest.val', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='context', full_name='dynamo.PutRequest.context', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='metadata', full_name='dynamo.PutRequest.metadata', index=4,
+      number=5, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -52,22 +190,43 @@ _HELLOREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=16,
-  serialized_end=44,
+  serialized_start=178,
+  serialized_end=291,
 )
 
 
-_HELLOREPLY = _descriptor.Descriptor(
-  name='HelloReply',
-  full_name='HelloReply',
+_GETRESPONSE = _descriptor.Descriptor(
+  name='GetResponse',
+  full_name='dynamo.GetResponse',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='message', full_name='HelloReply.message', index=0,
-      number=1, type=9, cpp_type=9, label=1,
+      name='server_id', full_name='dynamo.GetResponse.server_id', index=0,
+      number=1, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='val', full_name='dynamo.GetResponse.val', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='context', full_name='dynamo.GetResponse.context', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='metadata', full_name='dynamo.GetResponse.metadata', index=3,
+      number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -84,53 +243,157 @@ _HELLOREPLY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=46,
-  serialized_end=75,
+  serialized_start=293,
+  serialized_end=394,
 )
 
-DESCRIPTOR.message_types_by_name['HelloRequest'] = _HELLOREQUEST
-DESCRIPTOR.message_types_by_name['HelloReply'] = _HELLOREPLY
+
+_PUTRESPONSE = _descriptor.Descriptor(
+  name='PutResponse',
+  full_name='dynamo.PutResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='dynamo.PutResponse.server_id', index=0,
+      number=1, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='metadata', full_name='dynamo.PutResponse.metadata', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=396,
+  serialized_end=446,
+)
+
+_VECTORCLOCK.fields_by_name['clock'].message_type = _VECTORCLOCKITEM
+_PUTREQUEST.fields_by_name['context'].message_type = _VECTORCLOCK
+_GETRESPONSE.fields_by_name['context'].message_type = _VECTORCLOCK
+DESCRIPTOR.message_types_by_name['GetRequest'] = _GETREQUEST
+DESCRIPTOR.message_types_by_name['VectorClockItem'] = _VECTORCLOCKITEM
+DESCRIPTOR.message_types_by_name['VectorClock'] = _VECTORCLOCK
+DESCRIPTOR.message_types_by_name['PutRequest'] = _PUTREQUEST
+DESCRIPTOR.message_types_by_name['GetResponse'] = _GETRESPONSE
+DESCRIPTOR.message_types_by_name['PutResponse'] = _PUTRESPONSE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-HelloRequest = _reflection.GeneratedProtocolMessageType('HelloRequest', (_message.Message,), {
-  'DESCRIPTOR' : _HELLOREQUEST,
+GetRequest = _reflection.GeneratedProtocolMessageType('GetRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETREQUEST,
   '__module__' : 'dynamo_pb2'
-  # @@protoc_insertion_point(class_scope:HelloRequest)
+  # @@protoc_insertion_point(class_scope:dynamo.GetRequest)
   })
-_sym_db.RegisterMessage(HelloRequest)
+_sym_db.RegisterMessage(GetRequest)
 
-HelloReply = _reflection.GeneratedProtocolMessageType('HelloReply', (_message.Message,), {
-  'DESCRIPTOR' : _HELLOREPLY,
+VectorClockItem = _reflection.GeneratedProtocolMessageType('VectorClockItem', (_message.Message,), {
+  'DESCRIPTOR' : _VECTORCLOCKITEM,
   '__module__' : 'dynamo_pb2'
-  # @@protoc_insertion_point(class_scope:HelloReply)
+  # @@protoc_insertion_point(class_scope:dynamo.VectorClockItem)
   })
-_sym_db.RegisterMessage(HelloReply)
+_sym_db.RegisterMessage(VectorClockItem)
+
+VectorClock = _reflection.GeneratedProtocolMessageType('VectorClock', (_message.Message,), {
+  'DESCRIPTOR' : _VECTORCLOCK,
+  '__module__' : 'dynamo_pb2'
+  # @@protoc_insertion_point(class_scope:dynamo.VectorClock)
+  })
+_sym_db.RegisterMessage(VectorClock)
+
+PutRequest = _reflection.GeneratedProtocolMessageType('PutRequest', (_message.Message,), {
+  'DESCRIPTOR' : _PUTREQUEST,
+  '__module__' : 'dynamo_pb2'
+  # @@protoc_insertion_point(class_scope:dynamo.PutRequest)
+  })
+_sym_db.RegisterMessage(PutRequest)
+
+GetResponse = _reflection.GeneratedProtocolMessageType('GetResponse', (_message.Message,), {
+  'DESCRIPTOR' : _GETRESPONSE,
+  '__module__' : 'dynamo_pb2'
+  # @@protoc_insertion_point(class_scope:dynamo.GetResponse)
+  })
+_sym_db.RegisterMessage(GetResponse)
+
+PutResponse = _reflection.GeneratedProtocolMessageType('PutResponse', (_message.Message,), {
+  'DESCRIPTOR' : _PUTRESPONSE,
+  '__module__' : 'dynamo_pb2'
+  # @@protoc_insertion_point(class_scope:dynamo.PutResponse)
+  })
+_sym_db.RegisterMessage(PutResponse)
 
 
 
-_GREETER = _descriptor.ServiceDescriptor(
-  name='Greeter',
-  full_name='Greeter',
+_DYNAMOINTERFACE = _descriptor.ServiceDescriptor(
+  name='DynamoInterface',
+  full_name='dynamo.DynamoInterface',
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=77,
-  serialized_end=128,
+  serialized_start=449,
+  serialized_end=684,
   methods=[
   _descriptor.MethodDescriptor(
-    name='SayHello',
-    full_name='Greeter.SayHello',
+    name='Put',
+    full_name='dynamo.DynamoInterface.Put',
     index=0,
     containing_service=None,
-    input_type=_HELLOREQUEST,
-    output_type=_HELLOREPLY,
+    input_type=_PUTREQUEST,
+    output_type=_PUTRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Get',
+    full_name='dynamo.DynamoInterface.Get',
+    index=1,
+    containing_service=None,
+    input_type=_GETREQUEST,
+    output_type=_GETRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='PutStreaming',
+    full_name='dynamo.DynamoInterface.PutStreaming',
+    index=2,
+    containing_service=None,
+    input_type=_PUTREQUEST,
+    output_type=_PUTRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetStreaming',
+    full_name='dynamo.DynamoInterface.GetStreaming',
+    index=3,
+    containing_service=None,
+    input_type=_GETREQUEST,
+    output_type=_GETRESPONSE,
     serialized_options=None,
     create_key=_descriptor._internal_create_key,
   ),
 ])
-_sym_db.RegisterServiceDescriptor(_GREETER)
+_sym_db.RegisterServiceDescriptor(_DYNAMOINTERFACE)
 
-DESCRIPTOR.services_by_name['Greeter'] = _GREETER
+DESCRIPTOR.services_by_name['DynamoInterface'] = _DYNAMOINTERFACE
 
 # @@protoc_insertion_point(module_scope)

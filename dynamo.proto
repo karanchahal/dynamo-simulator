@@ -1,18 +1,61 @@
 syntax = "proto3";
+// The document of proto3: https://developers.google.com/protocol-buffers/docs/proto3
 
-// The greeting service definition.
-service Greeter {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply) {}
-  rpc RouteChat(stream HelloRequest) returns (stream HelloRequest) {}
+// 包名定义, Python中使用时可以省略不写
+// Package name definition, which can be omitted in Python.
+package dynamo;
+
+message GetRequest {
+    int64 client_id = 1;
+    int64 key = 2;
 }
 
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
+message VectorClockItem {
+  int64 server_id = 1;
+  int64 count = 2;
 }
 
-// The response message containing the greetings
-message HelloReply {
-  string message = 1;
+message VectorClock {
+  repeated VectorClockItem clock = 1;
+}
+
+message PutRequest {
+  int64 client_id = 1;
+  int64 key = 2;
+  string val = 3;
+  VectorClock context = 4; // TODO: replace with List[Tuple(server, count)]
+  string metadata = 5;
+}
+
+message GetResponse {
+  int64 server_id = 1;
+  string val = 2;
+  VectorClock context = 3;
+  string metadata = 4; // message confirming delivery
+}
+
+message PutResponse {
+  int64 server_id = 1;
+  string metadata = 2; // message confirming delivery
+}
+
+
+
+// `service` 是用来给gRPC服务定义方法的, 格式固定, 类似于Golang中定义一个接口
+// `service` is used to define methods for gRPC services in a fixed format, similar to defining
+//an interface in Golang
+service DynamoInterface {
+    // 一元模式(在一次调用中, 客户端只能向服务器传输一次请求数据, 服务器也只能返回一次响应)
+    // unary-unary(In a single call, the client can only send request once, and the server can
+    // only respond once.)
+    rpc Put (PutRequest) returns (PutResponse);
+
+    rpc Get (GetRequest) returns (GetResponse);
+
+    // client can put multiple requests 
+    rpc PutStreaming (stream PutRequest) returns (stream PutResponse);
+
+    // client can get multiple requests
+    rpc GetStreaming (stream GetRequest) returns (stream GetResponse);
+
 }
