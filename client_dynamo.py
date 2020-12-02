@@ -6,9 +6,8 @@ This file
 import time
 import grpc
 
-import dynamo_pb2_grpc
-import dynamo_pb2
-
+from dynamo_pb2_grpc import DynamoInterfaceStub
+from dynamo_pb2 import GetRequest, GetResponse, PutRequest, PutResponse, VectorClock, VectorClockItem
 
 def bidirectional_get(stub, client_id):
     """
@@ -22,30 +21,30 @@ def get(stub, client_id, key):
     """
     Regular get request
     """
-    request = dynamo_pb2.GetRequest(client_id=client_id, key=key)
-    response : dynamo_pb2.GetResponse = stub.Get(request)
+    request = GetRequest(client_id=client_id, key=key)
+    response : GetResponse = stub.Get(request)
     print(f"Get Response recieved from {response.server_id}")
 
 def put(stub, client_id, key, val, context):
     """
     Regular get request
     """
-    request = dynamo_pb2.PutRequest(client_id=client_id, key=key, val=val, context=context)
-    response : dynamo_pb2.PutResponse = stub.Put(request)
+    request = PutRequest(client_id=client_id, key=key, val=val, context=context)
+    response : PutResponse = stub.Put(request)
     print(f"Put Response recieved from {response.server_id}")
 
 
 def client_get(server_address, client_id):
     with grpc.insecure_channel(server_address) as channel:
-        stub = dynamo_pb2_grpc.DynamoInterfaceStub(channel)
+        stub = DynamoInterfaceStub(channel)
         get(stub, client_id, 1)
 
 
 def client_put(server_address, client_id):
     with grpc.insecure_channel(server_address) as channel:
-        stub = dynamo_pb2_grpc.DynamoInterfaceStub(channel)
-        item = dynamo_pb2.VectorClockItem(server_id=1, count=1)
-        context = dynamo_pb2.VectorClock(clock=[item])
+        stub = DynamoInterfaceStub(channel)
+        item = VectorClockItem(server_id=1, count=1)
+        context = VectorClock(clock=[item])
         put(stub, client_id, key=1, val="1", context=context)
 
 
