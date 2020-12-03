@@ -29,6 +29,11 @@ class DynamoInterfaceStub(object):
                 request_serializer=dynamo__pb2.PutRequest.SerializeToString,
                 response_deserializer=dynamo__pb2.ReplicateResponse.FromString,
                 )
+        self.PrintMemory = channel.unary_unary(
+                '/dynamo.DynamoInterface/PrintMemory',
+                request_serializer=dynamo__pb2.NoParams.SerializeToString,
+                response_deserializer=dynamo__pb2.MemResponse.FromString,
+                )
         self.PutStreaming = channel.stream_stream(
                 '/dynamo.DynamoInterface/PutStreaming',
                 request_serializer=dynamo__pb2.PutRequest.SerializeToString,
@@ -62,6 +67,14 @@ class DynamoInterfaceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def PrintMemory(self, request, context):
+        """debuggin functions
+
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def PutStreaming(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -91,6 +104,11 @@ def add_DynamoInterfaceServicer_to_server(servicer, server):
                     servicer.Replicate,
                     request_deserializer=dynamo__pb2.PutRequest.FromString,
                     response_serializer=dynamo__pb2.ReplicateResponse.SerializeToString,
+            ),
+            'PrintMemory': grpc.unary_unary_rpc_method_handler(
+                    servicer.PrintMemory,
+                    request_deserializer=dynamo__pb2.NoParams.FromString,
+                    response_serializer=dynamo__pb2.MemResponse.SerializeToString,
             ),
             'PutStreaming': grpc.stream_stream_rpc_method_handler(
                     servicer.PutStreaming,
@@ -160,6 +178,23 @@ class DynamoInterface(object):
         return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/Replicate',
             dynamo__pb2.PutRequest.SerializeToString,
             dynamo__pb2.ReplicateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def PrintMemory(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/PrintMemory',
+            dynamo__pb2.NoParams.SerializeToString,
+            dynamo__pb2.MemResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

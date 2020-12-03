@@ -50,6 +50,20 @@ message ReplicateResponse {
   bool succ = 3;
 }
 
+message KeyValStore {
+  int64 key= 1;
+
+}
+
+message NoParams {
+
+}
+
+message MemResponse {
+  map<int64, PutRequest> mem = 1;
+  map<int64, PutRequest> mem_replicated = 2;
+}
+
 
 service DynamoInterface {
 
@@ -58,6 +72,11 @@ service DynamoInterface {
     rpc Get (GetRequest) returns (GetResponse);
 
     rpc Replicate (PutRequest) returns (ReplicateResponse);
+
+
+    // debuggin functions
+
+    rpc PrintMemory (NoParams) returns (MemResponse);
 
     rpc PutStreaming (stream PutRequest) returns (stream PutResponse);
 

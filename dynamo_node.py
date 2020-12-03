@@ -1,8 +1,8 @@
 
 from dynamo_pb2_grpc import DynamoInterfaceServicer
 from typing import List, Tuple, Dict
-from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse
-from partitioning import get_preference_list, createtoken2node
+from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse
+from partitioning import get_preference_list, createtoken2node, find_owner, get_ranges
 from structures import Params
 from dynamo_pb2_grpc import DynamoInterfaceStub
 import grpc
@@ -37,7 +37,8 @@ class DynamoNode(DynamoInterfaceServicer):
         self.token2node = createtoken2node(membership_information)
 
         # in memory data store of key, values
-        self.memory: Dict[PutRequest] = {}
+        self.memory_of_node: Dict[int, PutRequest] = {}
+        self.memory_of_replicas: Dict[int, PutRequest] = {}
 
 
     def Get(self, request: GetRequest, context):
@@ -57,7 +58,7 @@ class DynamoNode(DynamoInterfaceServicer):
         """
         Put Request
         """
-        print(f"Put called by {request}")
+        print(f"Put called for {request.key} at {self.n_id}")
 
         # add to memory
         response: PutResponse = self._add_to_memory(request, request_type="put")
@@ -67,26 +68,31 @@ class DynamoNode(DynamoInterfaceServicer):
     
     def Replicate(self, request: PutRequest , context):
         """
-        Put Request
+        Replicate Request
         """
-        print(f"Put called by {request}")
+        print(f"Replication called for {request.key} at node {self.n_id}")
 
         # add to memory
-        self._add_to_hash_table(request)
+        self._add_to_replica_hash_table(request)
 
         # construct replicate response
         response = ReplicateResponse(server_id=self.n_id, 
                     metadata="Replication successful", 
                     succ=True)
         
-        print(f"Put sending a response back {response}")
         return response
     
     def _add_to_hash_table(self, request):
         """
-        Adds request to hash table.
+        Adds request to in memory hash table.
         """
-        self.memory[request.key] = request
+        self.memory_of_node[request.key] = request
+    
+    def _add_to_replica_hash_table(self, request):
+        """
+        Adds request to in memory replicated hash table.
+        """
+        self.memory_of_replicas[request.key] = request
 
     def _add_to_memory(self, request, request_type: str):
         """
@@ -100,17 +106,14 @@ class DynamoNode(DynamoInterfaceServicer):
         # walk up clockwise to find latest node
 
         key = request.key # assuming this key is in the key space
-        print(f"Key is {key}")
 
         # find token for key
         req_token = key // self.params.Q
 
-        print(f"Token is {req_token}")
 
         # find node for token
         node = self.token2node[req_token]
 
-        print(f"Node for token {req_token} is {node}")
 
         # if curr node is not the coordinator
         if self.n_id != node:
@@ -122,11 +125,11 @@ class DynamoNode(DynamoInterfaceServicer):
 
         # store it
         self._add_to_hash_table(request)
-        print(f"Stored to in memory key val store at node {self.n_id}")
 
         # send request to all replica nodes
         print("Replicating....")
         response = self.replicate(request)
+        print(f"Replication done ! {self.memory_of_replicas}")
 
         # return back to client with 
         return response
@@ -146,22 +149,26 @@ class DynamoNode(DynamoInterfaceServicer):
         else:
             raise NotImplementedError
 
-    def replicate_to(self, rep_n, request) -> ReplicateResponse:
+    def replicate_rpc(self, rep_n, request) -> ReplicateResponse:
         """
         Send a RPC call to a process telling it to replicate the request in it's memory
         """
         port = self.view[rep_n]
-        print(f"port {port}")
+        print(f"Replicating from {self.n_id} to {rep_n} going to port {port}")
         with grpc.insecure_channel(f"localhost:{port}") as channel:
             stub = DynamoInterfaceStub(channel)
             response = stub.Replicate(request)
-        print(f"Replicate Response {response}")
         return response
 
 
     def replicate(self, request):
         """
         Replication logic for dynamo DB. Assumes current node is the coordinator node.
+        The request to replicate will be made asynchronously and after R replicas have 
+        returned successfully, then we can return to client with success.
+
+        Else this function will block until replication is done.
+        TODO: add async operation
         """
         print(f"Preference List is {self.preference_list}")
 
@@ -170,9 +177,40 @@ class DynamoNode(DynamoInterfaceServicer):
         for p in self.preference_list:
             if p != self.n_id:
                 # assuming no failures
-                response = self.replicate_to(p, request)
+
+                response = self.replicate_rpc(p, request)
 
                 # assume no failures: TODO: fix
                 assert response.succ != False
 
         return PutResponse(server_id=self.n_id, metadata="Replicated", reroute=False, reroute_server_id=-1)
+    
+    def PrintMemory(self, request, context):
+        """
+        Prints current state of the node
+        function meant for debugging purposes
+        """
+        print("-------------------------------------------")
+        print(f"Information for {self.n_id}")
+        print(f"Preference List: {self.preference_list}")
+        print("The memory store for current node:")
+        for key, val in self.memory_of_node.items():
+            print(f"Key: {key} | Val: {val.val}")
+        
+        print("The memory store for replicated items:")
+        for key, val in self.memory_of_replicas.items():
+            print(f"Key: {key} | Original Owner {find_owner(key, self.params, self.token2node)}| Val: {val.val}")
+        
+        print("The membership information is:")
+        for key, val in self.membership_information.items():
+            ranges = get_ranges(val, self.params.Q)
+            print(f" Node {key} has the following tokens {ranges}")
+        
+        print("-------------------------------------------")
+
+        response = MemResponse(mem=self.memory_of_node, mem_replicated=self.memory_of_replicas)
+        return response
+        
+
+
+

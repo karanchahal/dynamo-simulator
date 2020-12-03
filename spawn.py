@@ -42,7 +42,7 @@ def create_view(start_port, num_proc) -> Dict[int, int]:
     return view
 
 
-def start_db(params: Params):
+def start_db(params: Params, membership_information: Dict[int, List[int]]):
     """
     Spawns n servers in different threads and these servers act as dynamo instances
     TODO: convert to processes.
@@ -50,7 +50,6 @@ def start_db(params: Params):
     port = 2333
     processes : List[Process] = []
     view = create_view(start_port=port, num_proc=params.num_proc)
-    membership_information = init_membership_list(params)
     print(f"Membership Info {membership_information}")
     for i in range(params.num_proc):
         process = start_process(i, view[i], view, membership_information, params)
@@ -62,11 +61,12 @@ def start_db(params: Params):
     return processes
 
 
-params = {
-    'num_proc' : 4,
-    'hash_size': 3, # 2^3 = 8 
-    'Q' : 2, # 
-    'N' : 2
-}
-
-start_db(Params(params))
+def init_server():
+    params = {
+        'num_proc' : 4,
+        'hash_size': 3, # 2^3 = 8 
+        'Q' : 2, # 
+        'N' : 2
+    }
+    membership_information = init_membership_list(params)
+    start_db(Params(params), membership_information)

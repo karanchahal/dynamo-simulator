@@ -68,10 +68,17 @@ def get_preference_list(n_id, membership_info: Dict[int,List[int]], params: Para
     and those nodes form our preference list. 
 
     Please note, that we can have less than N number of nodes as multiple tokens might map to the same node.
+    Dynamo states that 
 
-    TODO: Add fix to make this never happen.
+    "Note that with the use of virtual nodes, it is possible
+    that the first N successor positions for a particular key may be
+    owned by less than N distinct physical nodes (i.e. a node may
+    hold more than one of the first N positions). To address this, the
+    preference list for a key is constructed by skipping positions in the
+    ring to ensure that the list contains only distinct physical nodes"
 
-    To resolve for this, 
+    TODO: Add skips so that replicas are distinct nodes
+
     n_id: node id for which to construct pref list
     membership_info: List of tokens given to each node
     params: Dynamo params
@@ -98,3 +105,29 @@ def get_preference_list(n_id, membership_info: Dict[int,List[int]], params: Para
     assert len(pref_list) >= params.N
 
     return pref_list
+
+def find_owner(key: int, params: Params, token2node: Dict[int, int]):
+    """
+    Find's owner of a certain key dependeing on membership info (incapsulated in token2node)
+    Returns node id
+    """
+    # find token number
+    req_token = key // params.Q
+
+    # find node for token
+    node = token2node[req_token]
+
+    return node
+
+def get_ranges(tokens, token_sz):
+    """
+    Returns ranges given the tokens.
+    Hence, if token size is 2
+    and tokens are 0 and 1.
+    then range would be 
+    0->1,2->3
+    """
+    ranges = []
+    for t in tokens:
+        ranges.append(f"({t*token_sz} -> {(t+1)*token_sz}]")
+    return ranges
