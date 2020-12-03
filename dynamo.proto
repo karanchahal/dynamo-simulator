@@ -33,11 +33,21 @@ message GetResponse {
   string val = 2;
   VectorClock context = 3;
   string metadata = 4; // message confirming delivery
+  bool reroute = 5;
+  int64 reroute_server_id = 6;
 }
 
 message PutResponse {
   int64 server_id = 1;
   string metadata = 2; // message confirming delivery
+  bool reroute = 3;
+  int64 reroute_server_id = 4;
+}
+
+message ReplicateResponse {
+  int64 server_id = 1;
+  string metadata = 2; // message confirming delivery
+  bool succ = 3;
 }
 
 
@@ -46,6 +56,8 @@ service DynamoInterface {
     rpc Put (PutRequest) returns (PutResponse);
 
     rpc Get (GetRequest) returns (GetResponse);
+
+    rpc Replicate (PutRequest) returns (ReplicateResponse);
 
     rpc PutStreaming (stream PutRequest) returns (stream PutResponse);
 

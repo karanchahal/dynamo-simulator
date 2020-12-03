@@ -18,7 +18,7 @@ def test_get_preference_list():
     N = 2
     params = Params(dict(num_proc=num_proc, hash_size=hash_size, Q=Q, N=N))
 
-    membership_info = partitioning.init_membership_list(num_proc, hash_size, Q)
+    membership_info = partitioning.init_membership_list(params)
 
     print(membership_info)
 

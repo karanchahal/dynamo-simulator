@@ -50,7 +50,8 @@ def start_db(params: Params):
     port = 2333
     processes : List[Process] = []
     view = create_view(start_port=port, num_proc=params.num_proc)
-    membership_information = init_membership_list()
+    membership_information = init_membership_list(params)
+    print(f"Membership Info {membership_information}")
     for i in range(params.num_proc):
         process = start_process(i, view[i], view, membership_information, params)
         processes.append(process)
@@ -63,8 +64,8 @@ def start_db(params: Params):
 
 params = {
     'num_proc' : 4,
-    'hash_size': 3,
-    'Q' : 2,
+    'hash_size': 3, # 2^3 = 8 
+    'Q' : 2, # 
     'N' : 2
 }
 
