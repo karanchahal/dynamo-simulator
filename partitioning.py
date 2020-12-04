@@ -119,13 +119,15 @@ def find_owner(key: int, params: Params, token2node: Dict[int, int]):
 
     return node
 
-def get_ranges(tokens, token_sz):
+def get_ranges(tokens: List[int], token_sz: int):
     """
     Returns ranges given the tokens.
     Hence, if token size is 2
     and tokens are 0 and 1.
     then range would be 
     0->1,2->3
+    tokens: list of token ids
+    token_sz: size of each token
     """
     ranges = []
     for t in tokens:

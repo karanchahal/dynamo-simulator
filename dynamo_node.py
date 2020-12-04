@@ -6,6 +6,20 @@ from partitioning import get_preference_list, createtoken2node, find_owner, get_
 from structures import Params
 from dynamo_pb2_grpc import DynamoInterfaceStub
 import grpc
+import threading
+import concurrent
+
+def replicate_rpc(view, rep_n, request) -> ReplicateResponse:
+    """
+    Send a RPC call to a process telling it to replicate the request in it's memory
+    """
+    port = view[rep_n]
+    with grpc.insecure_channel(f"localhost:{port}") as channel:
+        stub = DynamoInterfaceStub(channel)
+        response = stub.Replicate(request)
+    return response
+
+
 
 class DynamoNode(DynamoInterfaceServicer):
     """
@@ -149,17 +163,6 @@ class DynamoNode(DynamoInterfaceServicer):
         else:
             raise NotImplementedError
 
-    def replicate_rpc(self, rep_n, request) -> ReplicateResponse:
-        """
-        Send a RPC call to a process telling it to replicate the request in it's memory
-        """
-        port = self.view[rep_n]
-        print(f"Replicating from {self.n_id} to {rep_n} going to port {port}")
-        with grpc.insecure_channel(f"localhost:{port}") as channel:
-            stub = DynamoInterfaceStub(channel)
-            response = stub.Replicate(request)
-        return response
-
 
     def replicate(self, request):
         """
@@ -171,18 +174,43 @@ class DynamoNode(DynamoInterfaceServicer):
         TODO: add async operation
         """
         print(f"Preference List is {self.preference_list}")
+        replica_lock = threading.Lock()
+        completed_reps = 0
+
+
+        def rpc_callback(f):
+            print(f"Writes done !")
 
         # TODO: sequential, can be optimized by doing these requests in parallel
         # for replica_n in self.preference_list
+        # send RPC's in parallel
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        fs = set([])
         for p in self.preference_list:
             if p != self.n_id:
                 # assuming no failures
-
-                response = self.replicate_rpc(p, request)
-
+                fut = executor.submit(replicate_rpc, self.view, p, request)
+                fut.add_done_callback(rpc_callback)
+                fs.add(fut)
                 # assume no failures: TODO: fix
-                assert response.succ != False
 
+        # wait until max timeout, and check if W writes have succeeded, if yes then return else fail request
+        itrs = concurrent.futures.as_completed(fs, timeout=self.params.w_timeout)
+        
+        try:
+            w = 0
+            for it in itrs:
+                w += 1
+                print(f"ITRS: Writes to {w} nodes done !")
+                if w == self.params.W:
+                    break
+            # TODO: store the futures that have not finished
+
+        except concurrent.futures.TimeoutError:
+            # time has expired
+            print("Time has expired !")
+            # TODO: fail request as put request did not succeed ? What do we do here
+            
         return PutResponse(server_id=self.n_id, metadata="Replicated", reroute=False, reroute_server_id=-1)
     
     def PrintMemory(self, request, context):

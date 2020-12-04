@@ -26,13 +26,16 @@ class Process:
 
 class Params:
     '''
-    The params that docate the dynamo instance configuration
+    The params that specify the dynamo instance configuration
     '''
     def __init__(self, d):
         self.num_proc: int = None # number of dynamo instances in ring
         self.Q: int = None # size of virtual node: should be a power of 2
         self.hash_size: int =  None # number of bits in the hash of the key: hence key space in ring = 2^{hash_size}
         self.N: int = None # the size of the preference list
+        self.R: int = None # the number of successful read requests needed
+        self.W: int = None # the number of succ write request needed
+        self.w_timeout: int = None # the number of seconds the timeout for write replication is
         self.__dict__ = d
 
     def __repr__(self):

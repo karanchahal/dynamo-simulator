@@ -68,5 +68,8 @@ def init_server():
         'Q' : 2, # 
         'N' : 2
     }
+    params = Params(params)
     membership_information = init_membership_list(params)
-    start_db(Params(params), membership_information)
+    start_db(params, membership_information)
+
+# init_server()
