@@ -1,7 +1,7 @@
 
 from dynamo_pb2_grpc import DynamoInterfaceServicer
 from typing import List, Tuple, Dict, Union
-from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem
+from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem, Memory
 from partitioning import get_preference_list, createtoken2node, find_owner, get_ranges
 from structures import Params
 from dynamo_pb2_grpc import DynamoInterfaceStub
@@ -60,7 +60,7 @@ class DynamoNode(DynamoInterfaceServicer):
 
         # in memory data store of key, values
         self.memory_of_node: Dict[int, PutRequest] = {}
-        self.memory_of_replicas: Dict[int, PutRequest] = {}
+        self.memory_of_replicas: Dict[int, Memory] = {}
 
 
     def Get(self, request: GetRequest, context):
@@ -78,7 +78,7 @@ class DynamoNode(DynamoInterfaceServicer):
         Assumes current node has key
         """
         print(f"Read called for key {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
-        response: ReadResponse = self._get_from_hash_table(request.key, from_replica=True)
+        response: ReadResponse = self._get_from_hash_table(request.key, coord_nid=request.coord_nid, from_replica=True)
         return response
 
     def Put(self, request: PutRequest , context):
@@ -134,9 +134,9 @@ class DynamoNode(DynamoInterfaceServicer):
 
         return response
 
-    def _get_from_hash_table(self, key: int, from_replica: bool=False):
+    def _get_from_hash_table(self, key: int, coord_nid:int = None, from_replica: bool=False):
         if from_replica:
-            memory = self.memory_of_replicas
+            memory = self.memory_of_replicas[coord_nid].mem
         else:
             memory = self.memory_of_node
         put_request = memory[key] # currently we're storing the entire PutRequest in the hash table
@@ -154,7 +154,10 @@ class DynamoNode(DynamoInterfaceServicer):
         """
         Adds request to in memory replicated hash table.
         """
-        self.memory_of_replicas[request.key] = request
+        if request.coord_nid not in self.memory_of_replicas:
+            self.memory_of_replicas[request.coord_nid] = Memory(mem={
+                request.key: request
+            })
 
     def _add_to_memory(self, request, request_type: str):
         """
@@ -269,6 +272,9 @@ class DynamoNode(DynamoInterfaceServicer):
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
         fs = set([])
         for i, p in enumerate(self.preference_list):
+            # nessasary for storing in replica memory stores
+            request.coord_nid = self.n_id
+
             if i > self.params.N - 1:
                 break
             if p != self.n_id:
@@ -306,7 +312,6 @@ class DynamoNode(DynamoInterfaceServicer):
         returned successfully, then we can return to client with success.
 
         Else this function will block until replication is done.
-        TODO: add async operation
         """
         print(f"Preference List is {self.preference_list}")
         replica_lock = threading.Lock()
@@ -322,6 +327,7 @@ class DynamoNode(DynamoInterfaceServicer):
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
         fs = set([])
         for p in self.preference_list:
+            request.coord_nid = self.n_id
             if p != self.n_id:
                 # assuming no failures
                 fut = executor.submit(replicate_rpc, self.view, p, request)
@@ -361,8 +367,10 @@ class DynamoNode(DynamoInterfaceServicer):
             print(f"Key: {key} | Val: {val.val}")
         
         print("The memory store for replicated items:")
-        for key, val in self.memory_of_replicas.items():
-            print(f"Key: {key} | Original Owner {find_owner(key, self.params, self.token2node)}| Val: {val.val}")
+        for n_id, d in self.memory_of_replicas.items():
+            print(f"Replication for node {n_id}")
+            for key, val in d.mem.items():
+                print(f"Key: {key} | Original Owner {find_owner(key, self.params, self.token2node)}| Val: {val.val}")
         
         print("The membership information is:")
         for key, val in self.membership_information.items():
@@ -370,10 +378,9 @@ class DynamoNode(DynamoInterfaceServicer):
             print(f" Node {key} has the following tokens {ranges}")
         
         print("-------------------------------------------")
-
+        
         response = MemResponse(mem=self.memory_of_node, mem_replicated=self.memory_of_replicas)
         return response
-        
 
 
 

@@ -69,10 +69,10 @@ def test_replication():
     mem3, repmem3 =  client_get_memory(ports[3])
 
     # node 0 should have key 2 in it's mem and nothing in it's replicated mem
-    assert(key_val in mem0 and key_val not in repmem0)
-    assert(key_val not in mem1 and key_val in repmem1)
-    assert(key_val not in mem2 and key_val in repmem2)
-    assert(key_val not in mem3 and key_val not in repmem3)
+    assert(key_val in mem0)
+    assert(key_val not in mem1 and key_val in repmem1[0].mem)
+    assert(key_val not in mem2 and key_val in repmem2[0].mem)
+    assert(key_val not in mem3 and 0 not in repmem3)
     print("replication test successful")
     # node 
     # exit()

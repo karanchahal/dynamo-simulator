@@ -9,6 +9,7 @@ package dynamo;
 message GetRequest {
     int64 client_id = 1;
     int64 key = 2;
+    int64 coord_nid = 3;
 }
 
 message VectorClockItem {
@@ -31,6 +32,7 @@ message PutRequest {
   string val = 3;
   VectorClock context = 4; // TODO: replace with List[Tuple(server, count)]
   string metadata = 5;
+  int64 coord_nid = 6;
 }
 
 message GetResponse {
@@ -69,9 +71,13 @@ message NoParams {
 
 }
 
+message Memory {
+  map<int64, PutRequest> mem = 1;
+}
+
 message MemResponse {
   map<int64, PutRequest> mem = 1;
-  map<int64, PutRequest> mem_replicated = 2;
+  map<int64, Memory> mem_replicated = 2;
 }
 
 
