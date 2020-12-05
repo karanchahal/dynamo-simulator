@@ -198,11 +198,11 @@ class DynamoNode(DynamoInterfaceServicer):
         itrs = concurrent.futures.as_completed(fs, timeout=self.params.w_timeout)
         
         try:
-            w = 0
+            w = 1 # already written on original node
             for it in itrs:
                 w += 1
                 print(f"ITRS: Writes to {w} nodes done !")
-                if w == self.params.W:
+                if w >= self.params.W:
                     break
             # TODO: store the futures that have not finished
 
