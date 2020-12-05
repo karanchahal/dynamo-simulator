@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0c\x64ynamo.proto\x12\x06\x64ynamo\",\n\nGetRequest\x12\x11\n\tclient_id\x18\x01 \x01(\x03\x12\x0b\n\x03key\x18\x02 \x01(\x03\"3\n\x0fVectorClockItem\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\r\n\x05\x63ount\x18\x02 \x01(\x03\"5\n\x0bVectorClock\x12&\n\x05\x63lock\x18\x01 \x03(\x0b\x32\x17.dynamo.VectorClockItem\"q\n\nPutRequest\x12\x11\n\tclient_id\x18\x01 \x01(\x03\x12\x0b\n\x03key\x18\x02 \x01(\x03\x12\x0b\n\x03val\x18\x03 \x01(\t\x12$\n\x07\x63ontext\x18\x04 \x01(\x0b\x32\x13.dynamo.VectorClock\x12\x10\n\x08metadata\x18\x05 \x01(\t\"\x91\x01\n\x0bGetResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x0b\n\x03val\x18\x02 \x01(\t\x12$\n\x07\x63ontext\x18\x03 \x01(\x0b\x32\x13.dynamo.VectorClock\x12\x10\n\x08metadata\x18\x04 \x01(\t\x12\x0f\n\x07reroute\x18\x05 \x01(\x08\x12\x19\n\x11reroute_server_id\x18\x06 \x01(\x03\"^\n\x0bPutResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x10\n\x08metadata\x18\x02 \x01(\t\x12\x0f\n\x07reroute\x18\x03 \x01(\x08\x12\x19\n\x11reroute_server_id\x18\x04 \x01(\x03\"F\n\x11ReplicateResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x10\n\x08metadata\x18\x02 \x01(\t\x12\x0c\n\x04succ\x18\x03 \x01(\x08\"\x1a\n\x0bKeyValStore\x12\x0b\n\x03key\x18\x01 \x01(\x03\"\n\n\x08NoParams\"\x82\x02\n\x0bMemResponse\x12)\n\x03mem\x18\x01 \x03(\x0b\x32\x1c.dynamo.MemResponse.MemEntry\x12>\n\x0emem_replicated\x18\x02 \x03(\x0b\x32&.dynamo.MemResponse.MemReplicatedEntry\x1a>\n\x08MemEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.dynamo.PutRequest:\x02\x38\x01\x1aH\n\x12MemReplicatedEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.dynamo.PutRequest:\x02\x38\x01\x32\xdd\x02\n\x0f\x44ynamoInterface\x12.\n\x03Put\x12\x12.dynamo.PutRequest\x1a\x13.dynamo.PutResponse\x12.\n\x03Get\x12\x12.dynamo.GetRequest\x1a\x13.dynamo.GetResponse\x12:\n\tReplicate\x12\x12.dynamo.PutRequest\x1a\x19.dynamo.ReplicateResponse\x12\x34\n\x0bPrintMemory\x12\x10.dynamo.NoParams\x1a\x13.dynamo.MemResponse\x12;\n\x0cPutStreaming\x12\x12.dynamo.PutRequest\x1a\x13.dynamo.PutResponse(\x01\x30\x01\x12;\n\x0cGetStreaming\x12\x12.dynamo.GetRequest\x1a\x13.dynamo.GetResponse(\x01\x30\x01\x62\x06proto3'
+  serialized_pb=b'\n\x0c\x64ynamo.proto\x12\x06\x64ynamo\",\n\nGetRequest\x12\x11\n\tclient_id\x18\x01 \x01(\x03\x12\x0b\n\x03key\x18\x02 \x01(\x03\"3\n\x0fVectorClockItem\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\r\n\x05\x63ount\x18\x02 \x01(\x03\"5\n\x0bVectorClock\x12&\n\x05\x63lock\x18\x01 \x03(\x0b\x32\x17.dynamo.VectorClockItem\"=\n\x08ReadItem\x12\x0b\n\x03val\x18\x01 \x01(\t\x12$\n\x07\x63ontext\x18\x02 \x01(\x0b\x32\x13.dynamo.VectorClock\"q\n\nPutRequest\x12\x11\n\tclient_id\x18\x01 \x01(\x03\x12\x0b\n\x03key\x18\x02 \x01(\x03\x12\x0b\n\x03val\x18\x03 \x01(\t\x12$\n\x07\x63ontext\x18\x04 \x01(\x0b\x32\x13.dynamo.VectorClock\x12\x10\n\x08metadata\x18\x05 \x01(\t\"\x7f\n\x0bGetResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x1f\n\x05items\x18\x02 \x03(\x0b\x32\x10.dynamo.ReadItem\x12\x10\n\x08metadata\x18\x03 \x01(\t\x12\x0f\n\x07reroute\x18\x04 \x01(\x08\x12\x19\n\x11reroute_server_id\x18\x05 \x01(\x03\"S\n\x0cReadResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x1e\n\x04item\x18\x02 \x01(\x0b\x32\x10.dynamo.ReadItem\x12\x10\n\x08metadata\x18\x03 \x01(\t\"^\n\x0bPutResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x10\n\x08metadata\x18\x02 \x01(\t\x12\x0f\n\x07reroute\x18\x03 \x01(\x08\x12\x19\n\x11reroute_server_id\x18\x04 \x01(\x03\"F\n\x11ReplicateResponse\x12\x11\n\tserver_id\x18\x01 \x01(\x03\x12\x10\n\x08metadata\x18\x02 \x01(\t\x12\x0c\n\x04succ\x18\x03 \x01(\x08\"\x1a\n\x0bKeyValStore\x12\x0b\n\x03key\x18\x01 \x01(\x03\"\n\n\x08NoParams\"\x82\x02\n\x0bMemResponse\x12)\n\x03mem\x18\x01 \x03(\x0b\x32\x1c.dynamo.MemResponse.MemEntry\x12>\n\x0emem_replicated\x18\x02 \x03(\x0b\x32&.dynamo.MemResponse.MemReplicatedEntry\x1a>\n\x08MemEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.dynamo.PutRequest:\x02\x38\x01\x1aH\n\x12MemReplicatedEntry\x12\x0b\n\x03key\x18\x01 \x01(\x03\x12!\n\x05value\x18\x02 \x01(\x0b\x32\x12.dynamo.PutRequest:\x02\x38\x01\x32\x8f\x03\n\x0f\x44ynamoInterface\x12.\n\x03Put\x12\x12.dynamo.PutRequest\x1a\x13.dynamo.PutResponse\x12.\n\x03Get\x12\x12.dynamo.GetRequest\x1a\x13.dynamo.GetResponse\x12\x30\n\x04Read\x12\x12.dynamo.GetRequest\x1a\x14.dynamo.ReadResponse\x12:\n\tReplicate\x12\x12.dynamo.PutRequest\x1a\x19.dynamo.ReplicateResponse\x12\x34\n\x0bPrintMemory\x12\x10.dynamo.NoParams\x1a\x13.dynamo.MemResponse\x12;\n\x0cPutStreaming\x12\x12.dynamo.PutRequest\x1a\x13.dynamo.PutResponse(\x01\x30\x01\x12;\n\x0cGetStreaming\x12\x12.dynamo.GetRequest\x1a\x13.dynamo.GetResponse(\x01\x30\x01\x62\x06proto3'
 )
 
 
@@ -135,6 +135,45 @@ _VECTORCLOCK = _descriptor.Descriptor(
 )
 
 
+_READITEM = _descriptor.Descriptor(
+  name='ReadItem',
+  full_name='dynamo.ReadItem',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='val', full_name='dynamo.ReadItem.val', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='context', full_name='dynamo.ReadItem.context', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=178,
+  serialized_end=239,
+)
+
+
 _PUTREQUEST = _descriptor.Descriptor(
   name='PutRequest',
   full_name='dynamo.PutRequest',
@@ -190,8 +229,8 @@ _PUTREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=178,
-  serialized_end=291,
+  serialized_start=241,
+  serialized_end=354,
 )
 
 
@@ -211,36 +250,29 @@ _GETRESPONSE = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='val', full_name='dynamo.GetResponse.val', index=1,
-      number=2, type=9, cpp_type=9, label=1,
+      name='items', full_name='dynamo.GetResponse.items', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='metadata', full_name='dynamo.GetResponse.metadata', index=2,
+      number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='context', full_name='dynamo.GetResponse.context', index=2,
-      number=3, type=11, cpp_type=10, label=1,
-      has_default_value=False, default_value=None,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='metadata', full_name='dynamo.GetResponse.metadata', index=3,
-      number=4, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=b"".decode('utf-8'),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
-    _descriptor.FieldDescriptor(
-      name='reroute', full_name='dynamo.GetResponse.reroute', index=4,
-      number=5, type=8, cpp_type=7, label=1,
+      name='reroute', full_name='dynamo.GetResponse.reroute', index=3,
+      number=4, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='reroute_server_id', full_name='dynamo.GetResponse.reroute_server_id', index=5,
-      number=6, type=3, cpp_type=2, label=1,
+      name='reroute_server_id', full_name='dynamo.GetResponse.reroute_server_id', index=4,
+      number=5, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -257,8 +289,54 @@ _GETRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=294,
-  serialized_end=439,
+  serialized_start=356,
+  serialized_end=483,
+)
+
+
+_READRESPONSE = _descriptor.Descriptor(
+  name='ReadResponse',
+  full_name='dynamo.ReadResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='server_id', full_name='dynamo.ReadResponse.server_id', index=0,
+      number=1, type=3, cpp_type=2, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='item', full_name='dynamo.ReadResponse.item', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='metadata', full_name='dynamo.ReadResponse.metadata', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=485,
+  serialized_end=568,
 )
 
 
@@ -310,8 +388,8 @@ _PUTRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=441,
-  serialized_end=535,
+  serialized_start=570,
+  serialized_end=664,
 )
 
 
@@ -356,8 +434,8 @@ _REPLICATERESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=537,
-  serialized_end=607,
+  serialized_start=666,
+  serialized_end=736,
 )
 
 
@@ -388,8 +466,8 @@ _KEYVALSTORE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=609,
-  serialized_end=635,
+  serialized_start=738,
+  serialized_end=764,
 )
 
 
@@ -413,8 +491,8 @@ _NOPARAMS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=637,
-  serialized_end=647,
+  serialized_start=766,
+  serialized_end=776,
 )
 
 
@@ -452,8 +530,8 @@ _MEMRESPONSE_MEMENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=772,
-  serialized_end=834,
+  serialized_start=901,
+  serialized_end=963,
 )
 
 _MEMRESPONSE_MEMREPLICATEDENTRY = _descriptor.Descriptor(
@@ -490,8 +568,8 @@ _MEMRESPONSE_MEMREPLICATEDENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=836,
-  serialized_end=908,
+  serialized_start=965,
+  serialized_end=1037,
 )
 
 _MEMRESPONSE = _descriptor.Descriptor(
@@ -528,13 +606,15 @@ _MEMRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=650,
-  serialized_end=908,
+  serialized_start=779,
+  serialized_end=1037,
 )
 
 _VECTORCLOCK.fields_by_name['clock'].message_type = _VECTORCLOCKITEM
+_READITEM.fields_by_name['context'].message_type = _VECTORCLOCK
 _PUTREQUEST.fields_by_name['context'].message_type = _VECTORCLOCK
-_GETRESPONSE.fields_by_name['context'].message_type = _VECTORCLOCK
+_GETRESPONSE.fields_by_name['items'].message_type = _READITEM
+_READRESPONSE.fields_by_name['item'].message_type = _READITEM
 _MEMRESPONSE_MEMENTRY.fields_by_name['value'].message_type = _PUTREQUEST
 _MEMRESPONSE_MEMENTRY.containing_type = _MEMRESPONSE
 _MEMRESPONSE_MEMREPLICATEDENTRY.fields_by_name['value'].message_type = _PUTREQUEST
@@ -544,8 +624,10 @@ _MEMRESPONSE.fields_by_name['mem_replicated'].message_type = _MEMRESPONSE_MEMREP
 DESCRIPTOR.message_types_by_name['GetRequest'] = _GETREQUEST
 DESCRIPTOR.message_types_by_name['VectorClockItem'] = _VECTORCLOCKITEM
 DESCRIPTOR.message_types_by_name['VectorClock'] = _VECTORCLOCK
+DESCRIPTOR.message_types_by_name['ReadItem'] = _READITEM
 DESCRIPTOR.message_types_by_name['PutRequest'] = _PUTREQUEST
 DESCRIPTOR.message_types_by_name['GetResponse'] = _GETRESPONSE
+DESCRIPTOR.message_types_by_name['ReadResponse'] = _READRESPONSE
 DESCRIPTOR.message_types_by_name['PutResponse'] = _PUTRESPONSE
 DESCRIPTOR.message_types_by_name['ReplicateResponse'] = _REPLICATERESPONSE
 DESCRIPTOR.message_types_by_name['KeyValStore'] = _KEYVALSTORE
@@ -574,6 +656,13 @@ VectorClock = _reflection.GeneratedProtocolMessageType('VectorClock', (_message.
   })
 _sym_db.RegisterMessage(VectorClock)
 
+ReadItem = _reflection.GeneratedProtocolMessageType('ReadItem', (_message.Message,), {
+  'DESCRIPTOR' : _READITEM,
+  '__module__' : 'dynamo_pb2'
+  # @@protoc_insertion_point(class_scope:dynamo.ReadItem)
+  })
+_sym_db.RegisterMessage(ReadItem)
+
 PutRequest = _reflection.GeneratedProtocolMessageType('PutRequest', (_message.Message,), {
   'DESCRIPTOR' : _PUTREQUEST,
   '__module__' : 'dynamo_pb2'
@@ -587,6 +676,13 @@ GetResponse = _reflection.GeneratedProtocolMessageType('GetResponse', (_message.
   # @@protoc_insertion_point(class_scope:dynamo.GetResponse)
   })
 _sym_db.RegisterMessage(GetResponse)
+
+ReadResponse = _reflection.GeneratedProtocolMessageType('ReadResponse', (_message.Message,), {
+  'DESCRIPTOR' : _READRESPONSE,
+  '__module__' : 'dynamo_pb2'
+  # @@protoc_insertion_point(class_scope:dynamo.ReadResponse)
+  })
+_sym_db.RegisterMessage(ReadResponse)
 
 PutResponse = _reflection.GeneratedProtocolMessageType('PutResponse', (_message.Message,), {
   'DESCRIPTOR' : _PUTRESPONSE,
@@ -650,8 +746,8 @@ _DYNAMOINTERFACE = _descriptor.ServiceDescriptor(
   index=0,
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_start=911,
-  serialized_end=1260,
+  serialized_start=1040,
+  serialized_end=1439,
   methods=[
   _descriptor.MethodDescriptor(
     name='Put',
@@ -674,9 +770,19 @@ _DYNAMOINTERFACE = _descriptor.ServiceDescriptor(
     create_key=_descriptor._internal_create_key,
   ),
   _descriptor.MethodDescriptor(
+    name='Read',
+    full_name='dynamo.DynamoInterface.Read',
+    index=2,
+    containing_service=None,
+    input_type=_GETREQUEST,
+    output_type=_READRESPONSE,
+    serialized_options=None,
+    create_key=_descriptor._internal_create_key,
+  ),
+  _descriptor.MethodDescriptor(
     name='Replicate',
     full_name='dynamo.DynamoInterface.Replicate',
-    index=2,
+    index=3,
     containing_service=None,
     input_type=_PUTREQUEST,
     output_type=_REPLICATERESPONSE,
@@ -686,7 +792,7 @@ _DYNAMOINTERFACE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='PrintMemory',
     full_name='dynamo.DynamoInterface.PrintMemory',
-    index=3,
+    index=4,
     containing_service=None,
     input_type=_NOPARAMS,
     output_type=_MEMRESPONSE,
@@ -696,7 +802,7 @@ _DYNAMOINTERFACE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='PutStreaming',
     full_name='dynamo.DynamoInterface.PutStreaming',
-    index=4,
+    index=5,
     containing_service=None,
     input_type=_PUTREQUEST,
     output_type=_PUTRESPONSE,
@@ -706,7 +812,7 @@ _DYNAMOINTERFACE = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetStreaming',
     full_name='dynamo.DynamoInterface.GetStreaming',
-    index=5,
+    index=6,
     containing_service=None,
     input_type=_GETREQUEST,
     output_type=_GETRESPONSE,

@@ -24,6 +24,7 @@ def get(stub, client_id, key):
     request = GetRequest(client_id=client_id, key=key)
     response : GetResponse = stub.Get(request)
     print(f"Get Response recieved from {response.server_id}")
+    return response
 
 def put(stub, request: PutRequest):
     """
@@ -34,16 +35,22 @@ def put(stub, request: PutRequest):
     return response
 
 
-def client_get(server_address, client_id):
-    with grpc.insecure_channel(server_address) as channel:
+def client_get(port, client_id, key=1):
+    with grpc.insecure_channel(f"localhost:{port}") as channel:
         stub = DynamoInterfaceStub(channel)
-        get(stub, client_id, 1)
+        response = get(stub, client_id, key)
 
+    if response.reroute == True:
+        # sending to actual coordinator node
+        with grpc.insecure_channel(f"localhost:{response.reroute_server_id}") as channel:
+            stub = DynamoInterfaceStub(channel)
+            response = get(stub, client_id, key)
 
-def client_put(port, client_id, key=1):
+    return response
+
+def client_put(port, client_id, key=1, val="1"):
     item = VectorClockItem(server_id=1, count=1)
     context = VectorClock(clock=[item])
-    val = "1"
     request = PutRequest(client_id=client_id, key=key, val=val, context=context)
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         stub = DynamoInterfaceStub(channel)

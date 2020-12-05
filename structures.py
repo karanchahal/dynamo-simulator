@@ -7,6 +7,13 @@ class VectorClock(object):
     '''
     clock : List[Tuple[int, int]] = None
 
+    def __lt__(self, other):
+        for other_item in other.clock:
+            for item in self.clock:
+                if other_item[0] == item[0] and other_item[1] < item[1]:
+                    return False
+        return True
+
 class KeyValPair(object):
     '''
     Key Value Pair for a put/get request
@@ -36,6 +43,7 @@ class Params:
         self.R: int = None # the number of successful read requests needed
         self.W: int = None # the number of succ write request needed
         self.w_timeout: int = None # the number of seconds the timeout for write replication is
+        self.r_timeout: int = None # the number of seconds the timeout for read replication is
         self.__dict__ = d
 
     def __repr__(self):

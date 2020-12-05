@@ -24,6 +24,11 @@ class DynamoInterfaceStub(object):
                 request_serializer=dynamo__pb2.GetRequest.SerializeToString,
                 response_deserializer=dynamo__pb2.GetResponse.FromString,
                 )
+        self.Read = channel.unary_unary(
+                '/dynamo.DynamoInterface/Read',
+                request_serializer=dynamo__pb2.GetRequest.SerializeToString,
+                response_deserializer=dynamo__pb2.ReadResponse.FromString,
+                )
         self.Replicate = channel.unary_unary(
                 '/dynamo.DynamoInterface/Replicate',
                 request_serializer=dynamo__pb2.PutRequest.SerializeToString,
@@ -56,6 +61,12 @@ class DynamoInterfaceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Get(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Read(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -99,6 +110,11 @@ def add_DynamoInterfaceServicer_to_server(servicer, server):
                     servicer.Get,
                     request_deserializer=dynamo__pb2.GetRequest.FromString,
                     response_serializer=dynamo__pb2.GetResponse.SerializeToString,
+            ),
+            'Read': grpc.unary_unary_rpc_method_handler(
+                    servicer.Read,
+                    request_deserializer=dynamo__pb2.GetRequest.FromString,
+                    response_serializer=dynamo__pb2.ReadResponse.SerializeToString,
             ),
             'Replicate': grpc.unary_unary_rpc_method_handler(
                     servicer.Replicate,
@@ -161,6 +177,23 @@ class DynamoInterface(object):
         return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/Get',
             dynamo__pb2.GetRequest.SerializeToString,
             dynamo__pb2.GetResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Read(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/Read',
+            dynamo__pb2.GetRequest.SerializeToString,
+            dynamo__pb2.ReadResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

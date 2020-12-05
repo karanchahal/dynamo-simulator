@@ -20,6 +20,11 @@ message VectorClock {
   repeated VectorClockItem clock = 1;
 }
 
+message ReadItem {
+  string val = 1;
+  VectorClock context = 2;
+}
+
 message PutRequest {
   int64 client_id = 1;
   int64 key = 2;
@@ -30,11 +35,16 @@ message PutRequest {
 
 message GetResponse {
   int64 server_id = 1;
-  string val = 2;
-  VectorClock context = 3;
-  string metadata = 4; // message confirming delivery
-  bool reroute = 5;
-  int64 reroute_server_id = 6;
+  repeated ReadItem items = 2;
+  string metadata = 3; // message confirming delivery
+  bool reroute = 4;
+  int64 reroute_server_id = 5;
+}
+
+message ReadResponse {
+  int64 server_id = 1;
+  ReadItem item = 2;
+  string metadata = 3;
 }
 
 message PutResponse {
@@ -70,6 +80,8 @@ service DynamoInterface {
     rpc Put (PutRequest) returns (PutResponse);
 
     rpc Get (GetRequest) returns (GetResponse);
+
+    rpc Read (GetRequest) returns (ReadResponse);
 
     rpc Replicate (PutRequest) returns (ReplicateResponse);
 
