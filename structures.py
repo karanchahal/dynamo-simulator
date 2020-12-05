@@ -1,5 +1,6 @@
 
 from typing import Dict, List, Tuple
+from dynamo_pb2 import PutRequest
 
 class VectorClock(object):
     '''
@@ -52,3 +53,11 @@ class Params:
             if k is not None and v is not None:
                 print(f"{k} : {v}")
         return ""
+
+class FutureInformation(object):
+    '''
+    This object contains information about the future
+    '''
+    req: PutRequest = None # can be a get request as well
+    hinted_handoff: int = None # indicates wherether this is a hinted handoff from a certain node
+    original_node: int = None # node the future was sent to

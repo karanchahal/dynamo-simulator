@@ -91,8 +91,8 @@ def get_preference_list(n_id, membership_info: Dict[int,List[int]], params: Para
     v_nodes_per_proc = round(total_v_nodes / params.num_proc)
     max_token = total_v_nodes - 1
     token2node = createtoken2node(membership_info) # could have multiple nodes for a single token
-
-    n_per_token = round(params.N / v_nodes_per_proc)
+    N = params.N + 10 # adding extra nodes to preference list, TODO: push to params
+    n_per_token = round(N / v_nodes_per_proc)
     pref_list = set([])
     for token in membership_info[n_id]:
         for i in range(1,n_per_token+1):

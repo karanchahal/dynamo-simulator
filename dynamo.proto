@@ -33,6 +33,7 @@ message PutRequest {
   VectorClock context = 4; // TODO: replace with List[Tuple(server, count)]
   string metadata = 5;
   int64 coord_nid = 6;
+  int64 hinted_handoff = 7;
 }
 
 message GetResponse {
@@ -80,6 +81,10 @@ message MemResponse {
   map<int64, Memory> mem_replicated = 2;
 }
 
+message FailRequest {
+  bool fail = 1;
+}
+
 
 service DynamoInterface {
 
@@ -91,10 +96,11 @@ service DynamoInterface {
 
     rpc Replicate (PutRequest) returns (ReplicateResponse);
 
-
     // debuggin functions
 
     rpc PrintMemory (NoParams) returns (MemResponse);
+
+    rpc Fail (FailRequest) returns (FailRequest);
 
     rpc PutStreaming (stream PutRequest) returns (stream PutResponse);
 

@@ -39,6 +39,11 @@ class DynamoInterfaceStub(object):
                 request_serializer=dynamo__pb2.NoParams.SerializeToString,
                 response_deserializer=dynamo__pb2.MemResponse.FromString,
                 )
+        self.Fail = channel.unary_unary(
+                '/dynamo.DynamoInterface/Fail',
+                request_serializer=dynamo__pb2.FailRequest.SerializeToString,
+                response_deserializer=dynamo__pb2.FailRequest.FromString,
+                )
         self.PutStreaming = channel.stream_stream(
                 '/dynamo.DynamoInterface/PutStreaming',
                 request_serializer=dynamo__pb2.PutRequest.SerializeToString,
@@ -86,6 +91,12 @@ class DynamoInterfaceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Fail(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def PutStreaming(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -125,6 +136,11 @@ def add_DynamoInterfaceServicer_to_server(servicer, server):
                     servicer.PrintMemory,
                     request_deserializer=dynamo__pb2.NoParams.FromString,
                     response_serializer=dynamo__pb2.MemResponse.SerializeToString,
+            ),
+            'Fail': grpc.unary_unary_rpc_method_handler(
+                    servicer.Fail,
+                    request_deserializer=dynamo__pb2.FailRequest.FromString,
+                    response_serializer=dynamo__pb2.FailRequest.SerializeToString,
             ),
             'PutStreaming': grpc.stream_stream_rpc_method_handler(
                     servicer.PutStreaming,
@@ -228,6 +244,23 @@ class DynamoInterface(object):
         return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/PrintMemory',
             dynamo__pb2.NoParams.SerializeToString,
             dynamo__pb2.MemResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Fail(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/Fail',
+            dynamo__pb2.FailRequest.SerializeToString,
+            dynamo__pb2.FailRequest.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
