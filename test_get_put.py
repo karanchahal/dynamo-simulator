@@ -48,9 +48,16 @@ def test_get_put():
 
     response = client_get(port, 0, key)
     assert response.items[0].val == val
+    context = response.items[0].context 
 
     response = client_get(port, 0, key2)
     assert response.items[0].val == val2
+
+    # Check clock count updation on passing valid context obtained from GET
+    client_put(port, 0, key, val2, context=context)
+    response = client_get(port, 0, key)
+    assert response.items[0].val == val2
+    assert response.items[0].context.clock[0].count == 2
 
     print("-----Test get_put passed")
 

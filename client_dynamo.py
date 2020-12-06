@@ -48,9 +48,10 @@ def client_get(port, client_id, key=1):
 
     return response
 
-def client_put(port, client_id, key=1, val="1"):
-    item = VectorClockItem(server_id=1, count=1)
-    context = VectorClock(clock=[item])
+def client_put(port, client_id, key=1, val="1", context=None):
+    # item = VectorClockItem(server_id=1, count=1)
+    if context is None:
+        context = VectorClock(clock=[]) # An existing context only needs to be passed when updating an existing key's value
     request = PutRequest(client_id=client_id, key=key, val=val, context=context)
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         stub = DynamoInterfaceStub(channel)

@@ -1,7 +1,7 @@
 
 from dynamo_pb2_grpc import DynamoInterfaceServicer
 from typing import List, Tuple, Dict, Union
-from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem, Memory
+from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem, Memory, VectorClockItem
 from partitioning import get_preference_list, createtoken2node, find_owner, get_ranges
 from structures import Params
 from dynamo_pb2_grpc import DynamoInterfaceStub
@@ -67,7 +67,7 @@ class DynamoNode(DynamoInterfaceServicer):
         """
         Get request
         """
-        print(f"get called by client {request.client_id} for key: {request.key}")
+        print(f"[GET] Get called by client {request.client_id} for key: {request.key}")
         response: GetResponse = self._get_from_memory(request)
         return response
 
@@ -77,7 +77,7 @@ class DynamoNode(DynamoInterfaceServicer):
 
         Assumes current node has key
         """
-        print(f"Read called for key {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
+        print(f"[Read] Read called for key {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
         response: ReadResponse = self._get_from_hash_table(request.key, coord_nid=request.coord_nid, from_replica=True)
         return response
 
@@ -85,7 +85,7 @@ class DynamoNode(DynamoInterfaceServicer):
         """
         Put Request
         """
-        print(f"Put called for {request.key} at {self.n_id}")
+        print(f"[Put] Put called for key {request.key} at node {self.n_id}")
 
         # add to memory
         response: PutResponse = self._add_to_memory(request, request_type="put")
@@ -158,6 +158,11 @@ class DynamoNode(DynamoInterfaceServicer):
             self.memory_of_replicas[request.coord_nid] = Memory(mem={
                 request.key: request
             })
+        else:
+            # print(f"---------- Adding k={request.key}, v={request.val}, clock={request.context.clock} to existing replica for node")
+            mem_dict = dict(self.memory_of_replicas[request.coord_nid].mem)
+            mem_dict[request.key] = request
+            self.memory_of_replicas[request.coord_nid] = Memory(mem=mem_dict)
 
     def _add_to_memory(self, request, request_type: str):
         """
@@ -186,12 +191,14 @@ class DynamoNode(DynamoInterfaceServicer):
             return self.reroute(node, request_type)
 
         # if curr node is coordinator node...
+        # update context
+        self._update_clock(request.context.clock)
 
         # store it
         self._add_to_hash_table(request)
 
         # send request to all replica nodes
-        print("Replicating....")
+        print(f"Replicating.... key={request.key}, val={request.val}")
         response = self.replicate(request)
         print(f"Replication done ! {self.memory_of_replicas}")
 
@@ -228,6 +235,19 @@ class DynamoNode(DynamoInterfaceServicer):
                 filtered_items.append(item)
         
         return filtered_items
+
+    def _update_clock(self, clock):
+        """
+        Updates the vector clock during put request.
+        This method should only be called by the coordinator node.
+        """
+        # See if current server already exists in clock
+        for clock_item in clock:
+            if clock_item.server_id == str(self.n_id):
+                clock_item.count += 1
+                return
+        # If not found
+        clock.append(VectorClockItem(server_id=str(self.n_id), count=1))
 
     def reroute(self, node: int, request_type: str) -> Union[PutResponse, GetResponse]:
         """
@@ -266,7 +286,7 @@ class DynamoNode(DynamoInterfaceServicer):
 
         def rpc_callback(f):
             item = f.result().item
-            print(f"read done, returning item with val {item.val}")
+            print(f"read done, returning item with val {item.val} and clock {item.context.clock}")
             items.append(item)
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
