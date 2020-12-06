@@ -3,7 +3,7 @@ from client_dynamo import client_put, client_get
 import time
 import random 
 from spawn import start_db
-from structures import Params
+from structures import NetworkParams, Params
 
 def test_get_put():
     """
@@ -29,8 +29,14 @@ def test_get_put():
         2: [3], # key space -> (6,8]
         3: [0] # key space -> (0,2]
     }
+    network_params = {
+        'latency': 500,
+        'randomize_latency': True,
+        'drop_prob': 0
+    }
     params = Params(params)
-    server = executor.submit(start_db, params, membership_information)
+    network_params = NetworkParams(network_params)
+    server = executor.submit(start_db, params, membership_information, network_params)
 
     # fire client request
     ports = [2333,2334,2335,2336]

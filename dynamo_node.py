@@ -3,11 +3,13 @@ from dynamo_pb2_grpc import DynamoInterfaceServicer
 from typing import List, Tuple, Dict, Union
 from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem, Memory, VectorClockItem
 from partitioning import get_preference_list, createtoken2node, find_owner, get_ranges
-from structures import Params
+from structures import NetworkParams, Params
 from dynamo_pb2_grpc import DynamoInterfaceStub
 import grpc
 import threading
 import concurrent
+import random
+import time
 
 def replicate_rpc(view, rep_n, request) -> ReplicateResponse:
     """
@@ -34,7 +36,8 @@ class DynamoNode(DynamoInterfaceServicer):
     This class is the entry point to a dynamo node.
     """
     def __init__(self, n_id: int, view: Dict[int, str], 
-        membership_information: Dict[int, List[int]], params: Params):
+        membership_information: Dict[int, List[int]], params: Params,
+        network_params: NetworkParams):
         """
         view: dict indexed by node id, value is the address of the node
         membership_information: dict indexed by node id, gives set of tokens for each node. 
@@ -44,6 +47,7 @@ class DynamoNode(DynamoInterfaceServicer):
         super().__init__()
 
         self.params = params
+        self.network_params = network_params
 
         self.n_id = n_id
 
@@ -68,6 +72,7 @@ class DynamoNode(DynamoInterfaceServicer):
         Get request
         """
         print(f"[GET] Get called by client {request.client_id} for key: {request.key}")
+        self._check_add_latency()
         response: GetResponse = self._get_from_memory(request)
         return response
 
@@ -78,6 +83,7 @@ class DynamoNode(DynamoInterfaceServicer):
         Assumes current node has key
         """
         print(f"[Read] Read called for key {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
+        self._check_add_latency()
         response: ReadResponse = self._get_from_hash_table(request.key, coord_nid=request.coord_nid, from_replica=True)
         return response
 
@@ -86,7 +92,7 @@ class DynamoNode(DynamoInterfaceServicer):
         Put Request
         """
         print(f"[Put] Put called for key {request.key} at node {self.n_id}")
-
+        self._check_add_latency()
         # add to memory
         response: PutResponse = self._add_to_memory(request, request_type="put")
         
@@ -98,7 +104,7 @@ class DynamoNode(DynamoInterfaceServicer):
         Replicate Request
         """
         print(f"Replication called for {request.key} at node {self.n_id}")
-
+        self._check_add_latency()
         # add to memory
         self._add_to_replica_hash_table(request)
 
@@ -402,5 +408,10 @@ class DynamoNode(DynamoInterfaceServicer):
         response = MemResponse(mem=self.memory_of_node, mem_replicated=self.memory_of_replicas)
         return response
 
-
-
+    def _check_add_latency(self):
+        if self.network_params is None:
+            return
+        if self.network_params.randomize_latency:
+            time.sleep(random.randint(0, self.network_params.latency) / 1000)
+        else:
+            time.sleep(self.network_params.latency / 1000)
