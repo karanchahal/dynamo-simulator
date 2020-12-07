@@ -50,62 +50,6 @@ def createtoken2node(membership_info: Dict[int, List[int]]) -> Dict[int, int]:
     return token2node
 
 
-def get_preference_list(n_id, membership_info: Dict[int,List[int]], params: Params, timeout=1):
-    '''
-    Returns a pref list of size N (`N` specified in params).
-
-    We use Strategy 3 as our consistent hashing paradigm:
-    Q -> size of a token
-    T -> number of tokens that cover entire key space K
-    S - > number of nodes
-
-    For each node, to find it's replicas. We find it's tokens (M = T/S tokens).
-    For each of these tokens, we look at N/M tokens ahead and find the nodes responsible for those tokens.
-
-
-    Hence, we would have M*(N/M) total tokens to look at. We find out the nodes responsible for those tokens
-    and those nodes form our preference list.
-
-    Please note, that we can have less than N number of nodes as multiple tokens might map to the same node.
-    Dynamo states that
-
-    "Note that with the use of virtual nodes, it is possible
-    that the first N successor positions for a particular key may be
-    owned by less than N distinct physical nodes (i.e. a node may
-    hold more than one of the first N positions). To address this, the
-    preference list for a key is constructed by skipping positions in the
-    ring to ensure that the list contains only distinct physical nodes"
-
-    TODO: Add skips so that replicas are distinct nodes
-
-    n_id: node id for which to construct pref list
-    membership_info: List of tokens given to each node
-    params: Dynamo params
-    timeout: 1 second
-    '''
-    # get positions of each server in the ring
-
-    key_space = pow(2, params.hash_size)
-    total_v_nodes = round(key_space / params.Q)
-    v_nodes_per_proc = round(total_v_nodes / params.num_proc)
-    max_token = total_v_nodes - 1
-    token2node = createtoken2node(membership_info) # could have multiple nodes for a single token
-    N = params.N + 10 # adding extra nodes to preference list, TODO: push to params
-    n_per_token = round(N / v_nodes_per_proc)
-    pref_list = set([])
-    for token in membership_info[n_id]:
-        for i in range(1,n_per_token+1):
-            replic_node = (token+i) % total_v_nodes
-            n = token2node[replic_node]
-            if n != n_id:
-                pref_list.add(n)
-
-    # Note: this will trigger if we do not have at least N unique replicas
-    assert len(pref_list) >= params.N
-
-    return pref_list
-
-
 def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List[int]], params: Params, unhealthy_nodes: List[int], timeout=1):
     '''
     Returns a pref list of size N (`N` specified in params).
