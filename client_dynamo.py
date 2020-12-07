@@ -62,6 +62,8 @@ def client_put(port, client_id, key=1, val="1", context=None):
         with grpc.insecure_channel(f"localhost:{response.reroute_server_id}") as channel:
             stub = DynamoInterfaceStub(channel)
             response = put(stub, request)
+    
+    return response
 
 def client_get_memory(port):
     with grpc.insecure_channel(f"localhost:{port}") as channel:
