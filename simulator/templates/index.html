@@ -1,0 +1,39 @@
+{% extends 'bootstrap/base.html' %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block styles %}
+{{ super() }}
+	<style>
+		body { background: #e8f1f9; }
+	</style>
+{% endblock %}
+
+
+{% block title %}
+Dyanamo Simulator
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-10 col-lg-8 mx-lg-auto mx-md-auto">
+
+      <h1 class="pt-5 pb-2">Dynamo Simulator</h1>
+
+      <p class="lead">
+        This application lets you launch customized Dynamo environments with different system and network configurations.<br/>
+        You can then send different GET, PUT requests and analyze the performance of your custom Dynamo system.
+      </p>
+
+      <h2 class="pt-4 pb-2">Configuration</h2>
+      {{ wtf.quick_form(form) }}
+
+      <p class="pt-5"><strong>{{ message }}</strong></p>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
