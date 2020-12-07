@@ -1,10 +1,10 @@
 from concurrent import futures
+from partitioning import init_membership_list
 from client_dynamo import client_put, client_get
 import time
 import random 
 from spawn import start_db, start_db_background
 from structures import NetworkParams, Params
-import sys
 
 def main():
     """
@@ -22,18 +22,19 @@ def main():
         'R': 1,
         'W': 1
     }
-    membership_information = {
-        0: [1], # key space -> (2,4]
-        1: [2], # key space -> (4,6]
-        2: [3], # key space -> (6,8]
-        3: [0] # key space -> (0,2]
-    }
+    # membership_information = {
+    #     0: [1], # key space -> (2,4]
+    #     1: [2], # key space -> (4,6]
+    #     2: [3], # key space -> (6,8]
+    #     3: [0] # key space -> (0,2]
+    # }
     network_params = {
         'latency': 50,
         'randomize_latency': True,
         'drop_prob': 0
     }
     params = Params(params)
+    membership_information = init_membership_list(params)
     network_params = NetworkParams(network_params)
     server = start_db_background(params, membership_information, network_params, num_tasks=2)
 
