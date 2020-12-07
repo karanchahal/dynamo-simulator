@@ -54,6 +54,26 @@ class Params:
                 print(f"{k} : {v}")
         return ""
 
+class NetworkParams:
+    '''
+    The params that specify the network configuration
+    - latency
+    - package drop probability
+    '''
+    def __init__(self, d=None):
+        self.latency: int = 0 # Maximum latency for one request
+        self.randomize_latency: bool = False # A parameter to randomize the latency (uniformly between 0 - latency)
+        self.drop_prob: float = 0
+        if d is not None:
+            self.__dict__ = d
+
+    def __repr__(self):
+        print("NetworkParams...")
+        for k, v in self.__dict__.items():
+            if k is not None and v is not None:
+                print(f"{k} : {v}")
+        return ""
+
 class FutureInformation(object):
     '''
     This object contains information about the future

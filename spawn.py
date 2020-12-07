@@ -8,19 +8,20 @@ import grpc
 from concurrent import futures
 from dynamo_pb2_grpc import add_DynamoInterfaceServicer_to_server
 from threading import Thread
-from structures import Params, Process, KeyValPair, VectorClock
+from structures import Params, Process, NetworkParams
 from dynamo_node import DynamoNode
 from partitioning import init_membership_list
 
 
-def start_process(n_id, port, view, membership_information, params):
+def start_process(n_id, port, view, membership_information, params, network_params):
     SERVER_ADDRESS = f"localhost:{port}"
     server = grpc.server(futures.ThreadPoolExecutor())
     add_DynamoInterfaceServicer_to_server(DynamoNode(
                                 n_id=n_id,
                                 view=view,
                                 membership_information=membership_information, 
-                                params=params), 
+                                params=params,
+                                network_params=network_params), 
                             server)
 
     server.add_insecure_port(SERVER_ADDRESS)
@@ -42,7 +43,7 @@ def create_view(start_port, num_proc) -> Dict[int, int]:
     return view
 
 
-def start_db(params: Params, membership_information: Dict[int, List[int]]):
+def start_db(params: Params, membership_information: Dict[int, List[int]], network_params: NetworkParams = None):
     """
     Spawns n servers in different threads and these servers act as dynamo instances
     TODO: convert to processes.
@@ -52,7 +53,7 @@ def start_db(params: Params, membership_information: Dict[int, List[int]]):
     view = create_view(start_port=port, num_proc=params.num_proc)
     print(f"Membership Info {membership_information}")
     for i in range(params.num_proc):
-        process = start_process(i, view[i], view, membership_information, params)
+        process = start_process(i, view[i], view, membership_information, params, network_params)
         processes.append(process)
 
     # ending condition
@@ -70,6 +71,13 @@ def init_server():
     }
     params = Params(params)
     membership_information = init_membership_list(params)
-    start_db(params, membership_information)
+
+    network_params = {
+        'latency': 10,
+        'randomize_latency': False,
+        'drop_prob': 0
+    }
+    network_params = NetworkParams(network_params)
+    start_db(params, membership_information, network_params)
 
 # init_server()
