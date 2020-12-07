@@ -33,7 +33,7 @@ message PutRequest {
   VectorClock context = 4; // TODO: replace with List[Tuple(server, count)]
   string metadata = 5;
   int64 coord_nid = 6;
-  int64 hinted_handoff = 7;
+  string hinted_handoff = 7;
 }
 
 message GetResponse {

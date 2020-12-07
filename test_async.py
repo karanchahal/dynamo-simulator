@@ -2,7 +2,16 @@ import asyncio
 import time
 
 
-async def request_rpc():
-    await asyncio.sleep(1)
-    return 1
 
+def hey(n):
+    def boo():
+        nonlocal n
+        print(n)
+        n += 1
+    return boo
+
+k = hey(1)
+# l = make_multiplier_of(10)
+# print(l(2))
+k()
+k()

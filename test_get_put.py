@@ -1,5 +1,5 @@
 from concurrent import futures
-from client_dynamo import client_put, client_get, client_fail
+from client_dynamo import client_put, client_get, client_fail, client_get_memory
 import time
 import random 
 from spawn import start_db
@@ -67,7 +67,7 @@ def test_failure():
         'N' : 2,
         'w_timeout': 2,
         'R': 1,
-        'W': 1
+        'W': 2
     }
     membership_information = {
         0: [1], # key space -> (2,4]
@@ -88,6 +88,13 @@ def test_failure():
 
     client_fail(2334)
     client_put(port, 0, key_val)
+
+    mem0, repmem0 =  client_get_memory(ports[0])
+    mem1, repmem1 =  client_get_memory(ports[1])
+    mem2, repmem2 =  client_get_memory(ports[2])
+    mem3, repmem3 =  client_get_memory(ports[3])
+
+
 
 
 

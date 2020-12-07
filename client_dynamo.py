@@ -51,7 +51,7 @@ def client_get(port, client_id, key=1):
 def client_put(port, client_id, key=1, val="1"):
     item = VectorClockItem(server_id=1, count=1)
     context = VectorClock(clock=[item])
-    request = PutRequest(client_id=client_id, key=key, val=val, context=context)
+    request = PutRequest(client_id=client_id, key=key, val=val, context=context, hinted_handoff=-1)
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         stub = DynamoInterfaceStub(channel)
         response = put(stub, request)
