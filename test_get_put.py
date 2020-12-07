@@ -1,8 +1,6 @@
 from concurrent import futures
 import dynamo_pb2
 from dynamo_pb2 import PutRequest
-# import structures
-# import partitioning
 from partitioning import init_membership_list
 from client_dynamo import client_put, client_get, client_fail, client_get_memory
 import time
