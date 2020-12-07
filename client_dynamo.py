@@ -7,7 +7,7 @@ import time
 import grpc
 
 from dynamo_pb2_grpc import DynamoInterfaceStub
-from dynamo_pb2 import GetRequest, GetResponse, PutRequest, PutResponse, VectorClock, VectorClockItem, NoParams
+from dynamo_pb2 import GetRequest, GetResponse, PutRequest, PutResponse, VectorClock, VectorClockItem, NoParams, FailRequest
 
 def bidirectional_get(stub, client_id):
     """
@@ -52,7 +52,7 @@ def client_put(port, client_id, key=1, val="1", context=None):
     # item = VectorClockItem(server_id=1, count=1)
     if context is None:
         context = VectorClock(clock=[]) # An existing context only needs to be passed when updating an existing key's value
-    request = PutRequest(client_id=client_id, key=key, val=val, context=context)
+    request = PutRequest(client_id=client_id, key=key, val=val, context=context, hinted_handoff=-1)
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         stub = DynamoInterfaceStub(channel)
         response = put(stub, request)
@@ -72,4 +72,9 @@ def client_get_memory(port):
         response = stub.PrintMemory(request)
     return response.mem, response.mem_replicated
 
+def client_fail(port, fail=True):
+    with grpc.insecure_channel(f"localhost:{port}") as channel:
+        stub = DynamoInterfaceStub(channel)
+        request = FailRequest(fail=fail)
+        response = stub.Fail(request)
 # client_put(2333, 1)
