@@ -2,15 +2,14 @@ from concurrent import futures
 from client_dynamo import client_put, client_get
 import time
 import random 
-from spawn import start_db
+from spawn import start_db, start_db_background
 from structures import NetworkParams, Params
+import sys
 
-def test_get_put():
+def main():
     """
     This tests that the get and put operations are working properly.
     """
-    num_tasks = 2
-    executor = futures.ThreadPoolExecutor(max_workers=num_tasks)
 
     # start server
     params = {
@@ -30,13 +29,13 @@ def test_get_put():
         3: [0] # key space -> (0,2]
     }
     network_params = {
-        'latency': 500,
+        'latency': 50,
         'randomize_latency': True,
         'drop_prob': 0
     }
     params = Params(params)
     network_params = NetworkParams(network_params)
-    server = executor.submit(start_db, params, membership_information, network_params)
+    server = start_db_background(params, membership_information, network_params, num_tasks=2)
 
     # fire client request
     ports = [2333,2334,2335,2336]
@@ -65,6 +64,7 @@ def test_get_put():
     assert response.items[0].val == val2
     assert response.items[0].context.clock[0].count == 2
 
-    print("-----Test get_put passed")
+    print("\n-------Test get_put passed--------")
 
-test_get_put()
+if __name__ == '__main__':
+    main()

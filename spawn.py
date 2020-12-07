@@ -43,7 +43,7 @@ def create_view(start_port, num_proc) -> Dict[int, int]:
     return view
 
 
-def start_db(params: Params, membership_information: Dict[int, List[int]], network_params: NetworkParams = None):
+def start_db(params: Params, membership_information: Dict[int, List[int]], network_params: NetworkParams = None, wait=False):
     """
     Spawns n servers in different threads and these servers act as dynamo instances
     TODO: convert to processes.
@@ -57,10 +57,15 @@ def start_db(params: Params, membership_information: Dict[int, List[int]], netwo
         processes.append(process)
 
     # ending condition
-    processes[-1].server.wait_for_termination()
+    if wait:
+        processes[-1].server.wait_for_termination()
 
     return processes
 
+def start_db_background(params: Params, membership_information: Dict[int, List[int]], network_params: NetworkParams, num_tasks:int = 2, wait: bool = False):
+    executor = futures.ThreadPoolExecutor(max_workers=num_tasks)
+    server = executor.submit(start_db, params, membership_information, network_params, wait)
+    return server
 
 def init_server():
     params = {
