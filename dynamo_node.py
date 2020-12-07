@@ -2,7 +2,7 @@
 from dynamo_pb2_grpc import DynamoInterfaceServicer
 from typing import List, Tuple, Dict, Union
 from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem, Memory, VectorClockItem, FailRequest
-from partitioning import get_preference_list, createtoken2node, find_owner, get_ranges, get_preference_list_skip_unhealthy
+from partitioning import createtoken2node, find_owner, get_ranges, get_preference_list_skip_unhealthy
 from structures import NetworkParams, Params, FutureInformation
 from typing import List, Tuple, Dict, Union, Set
 from dynamo_pb2_grpc import DynamoInterfaceStub
@@ -64,7 +64,7 @@ class DynamoNode(DynamoInterfaceServicer):
         self.fail = False
 
         # a list of > N nodes that are closest to current node, (clockwise)
-        self.big_pref_list = get_preference_list(n_id=n_id, membership_info=membership_information, params=params)
+        self.big_pref_list = get_preference_list_skip_unhealthy(n_id=n_id, membership_info=membership_information, params=params)
         self.preference_list = list(self.big_pref_list)[:self.params.N]
 
         self.token2node = createtoken2node(membership_information)

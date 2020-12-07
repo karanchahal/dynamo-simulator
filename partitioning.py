@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, List
+from typing import Dict, List, Set
 from structures import Params
 
 def is_pow_of_two(n: int) -> bool:
@@ -50,7 +50,7 @@ def createtoken2node(membership_info: Dict[int, List[int]]) -> Dict[int, int]:
     return token2node
 
 
-def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List[int]], params: Params, unhealthy_nodes: List[int], timeout=1):
+def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List[int]], params: Params, unhealthy_nodes: Set[int] = [], timeout=1):
     '''
     Returns a pref list of size N (`N` specified in params).
 
