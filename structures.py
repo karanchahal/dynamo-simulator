@@ -78,6 +78,8 @@ class FutureInformation(object):
     '''
     This object contains information about the future
     '''
-    req: PutRequest = None # can be a get request as well
-    hinted_handoff: int = None # indicates wherether this is a hinted handoff from a certain node
-    original_node: int = None # node the future was sent to
+    def __init__(self, req=None, hinted_handoff=None, original_node=None):
+        self.req: PutRequest = req # can be a get request as well
+        self.hinted_handoff: int = hinted_handoff # indicates wherether this is a hinted handoff from a certain node
+        self.original_node: int = original_node # node the future was sent to
+

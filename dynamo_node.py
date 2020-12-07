@@ -442,21 +442,21 @@ class DynamoNode(DynamoInterfaceServicer):
 
             else:
                 print(f"Writes done !")
-                replica_lock.acquire()
-                completed_reps += 1
+                # TODO:
+                # replica_lock.acquire()
+                # completed_reps += 1
 
-                if completed_reps == N:
-                    # this means our request is successfully replicated, we can RIP !
-                    print("Put request has been successfully replicated :) ")
-
-                replica_lock.release()
+                # if completed_reps == N:
+                #     # this means our request is successfully replicated, we can RIP !
+                #     print("Put request has been successfully replicated :) ")
+                # replica_lock.release()
 
 
         # send RPC's in parallel
         # TODO: use preference list to figure out top N healthy nodes
 
         # TODO: implement this
-        pref_list = self.get_top_N_healthy_pref_list()
+        # pref_list = self.get_top_N_healthy_pref_list()
 
         for p in self.preference_list:
             request.coord_nid = self.n_id
