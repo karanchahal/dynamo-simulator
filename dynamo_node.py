@@ -12,6 +12,7 @@ import time
 import concurrent
 import random
 import time
+import sys 
 
 def replicate_rpc(view, rep_n, request) -> ReplicateResponse:
     """
@@ -89,7 +90,7 @@ class DynamoNode(DynamoInterfaceServicer):
         print(f"[GET] Get called by client {request.client_id} for key: {request.key}")
         if self.fail:
             print(f"Node {self.n_id} is set to fail")
-            raise NotImplementedError # retirning None will result in failure
+            raise concurrent.futures.CancelledError # retirning None will result in failure
 
         self._check_add_latency()
         response: GetResponse = self._get_from_memory(request)
@@ -104,10 +105,13 @@ class DynamoNode(DynamoInterfaceServicer):
         print(f"[Read] Read called for key {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
         if self.fail:
             print(f"Node {self.n_id} is set to fail")
-            raise NotImplementedError # retirning None will result in failure
-
-        self._check_add_latency()
-        response: ReadResponse = self._get_from_hash_table(request.key, coord_nid=request.coord_nid, from_replica=True)
+            raise concurrent.futures.CancelledError # retirning None will result in failure
+        try:
+            self._check_add_latency()
+            response: ReadResponse = self._get_from_hash_table(request.key, coord_nid=request.coord_nid, from_replica=True)
+        except:
+            print(f"----Exception {request.key} Nid: {self.n_id}")
+            print(f"--------------------Exception raised ! {sys.exc_info()[0]}")
         return response
 
     def Put(self, request: PutRequest , context):
@@ -117,7 +121,7 @@ class DynamoNode(DynamoInterfaceServicer):
         print(f"[Put] Put called for key {request.key} at node {self.n_id}")
         if self.fail:
             print(f"Node {self.n_id} is set to fail")
-            raise NotImplementedError # retirning None will result in failure
+            raise concurrent.futures.CancelledError # retirning None will result in failure
 
         self._check_add_latency()
         # add to memory
@@ -303,6 +307,7 @@ class DynamoNode(DynamoInterfaceServicer):
         elif request_type == "get":
             return GetResponse(server_id=self.n_id, items=None, metadata="needs to reroute!", reroute=True, reroute_server_id=self.view[node])
         else:
+            print("------------------This will always ERROR OUT")
             raise NotImplementedError
 
     def read(self, request):
@@ -330,8 +335,10 @@ class DynamoNode(DynamoInterfaceServicer):
             items.append(item)
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+
         fs = set([])
-        for i, p in enumerate(self.preference_list):
+        pref_list, token_used = self.get_top_N_healthy_pref_list()
+        for i, p in enumerate(pref_list):
             # nessasary for storing in replica memory stores
             request.coord_nid = self.n_id
 
@@ -348,7 +355,7 @@ class DynamoNode(DynamoInterfaceServicer):
         itrs = concurrent.futures.as_completed(fs, timeout=self.params.r_timeout)
         
         try:
-            r = 1 # already written on original node
+            r = 0 # already written on original node
             for it in itrs:
                 r += 1
                 print(f"ITRS: Reads from {r} nodes done !")

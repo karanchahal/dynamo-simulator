@@ -36,6 +36,7 @@ def put(stub, request: PutRequest):
 
 
 def client_get(port, client_id, key=1):
+    print("-------------Sending GET request !!!--------------")
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         stub = DynamoInterfaceStub(channel)
         response = get(stub, client_id, key)
