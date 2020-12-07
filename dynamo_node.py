@@ -354,19 +354,19 @@ class DynamoNode(DynamoInterfaceServicer):
         # wait until max timeout, and check if W writes have succeeded, if yes then return else fail request
         itrs = concurrent.futures.as_completed(fs, timeout=self.params.r_timeout)
         
-        try:
-            r = 0 # already written on original node
-            for it in itrs:
-                r += 1
-                print(f"ITRS: Reads from {r} nodes done !")
-                if r >= self.params.R:
-                    break
-            # TODO: store the futures that have not finished
-
-        except concurrent.futures.TimeoutError:
-            # time has expired
-            print("Time has expired !")
-            return GetResponse(server_id=self.n_id, items=items, metadata="timeout", reroute=False, reroute_server_id=-1)
+        if self.params.R > 1:
+            try:
+                r = 1 # already read from original node
+                for it in itrs:
+                    r += 1
+                    print(f"ITRS: Reads from {r} out of {self.params.R} nodes done !")
+                    if r >= self.params.R:
+                        break
+                # TODO: store the futures that have not finished
+            except concurrent.futures.TimeoutError:
+                # time has expired
+                print("Time has expired !")
+                return GetResponse(server_id=self.n_id, items=items, metadata="timeout", reroute=False, reroute_server_id=-1)
 
         filtered_items = self._filter_latest(items)
         response = GetResponse(server_id=self.n_id, items=filtered_items, metadata="success", reroute=False, reroute_server_id=-1)
@@ -516,28 +516,28 @@ class DynamoNode(DynamoInterfaceServicer):
         itrs = concurrent.futures.as_completed(fs, timeout=self.params.w_timeout)
 
         failure = False
-        try:
-            w = 0 # already written on original node
-            for it in itrs:  
-                if it.exception() is not None:
-                    # this future did not work out, find alterate future node and put data there
-                    print("Failure non callback !!")
-                else:
-                    w += 1
-                    print(f"ITRS: Writes to {w} nodes done !")
-                    print(f"Replicated at {fut2replica[it].original_node}")
-                print(f"-----w is {w} and W is {self.params.W}-----")
-                if w >= self.params.W:
-                    print("Breaking out of loop after satisfying min replicated nodes")
-                    failure = False
-                    break
-            # TODO: store the futures that have not finished
-
-        except concurrent.futures.TimeoutError:
-            # time has expired
-            failure = True
-            print("Time has expired !")
-            # TODO: fail request
+        if self.params.W > 1:
+            try:
+                w = 1 # already written on original node
+                for it in itrs:  
+                    if it.exception() is not None:
+                        # this future did not work out, find alterate future node and put data there
+                        print("Failure non callback !!")
+                    else:
+                        w += 1
+                        print(f"ITRS: Writes to {w} nodes done !")
+                        print(f"Replicated at {fut2replica[it].original_node}")
+                    print(f"-----w is {w} and W is {self.params.W}-----")
+                    if w >= self.params.W:
+                        print("Breaking out of loop after satisfying min replicated nodes")
+                        failure = False
+                        break
+                # TODO: store the futures that have not finished
+            except concurrent.futures.TimeoutError:
+                # time has expired
+                failure = True
+                print("Time has expired !")
+                # TODO: fail request
 
         # fail if timeout or completed reps have not been done
         print(f"----Completetd reps finally {completed_reps} Failure > {failure}")

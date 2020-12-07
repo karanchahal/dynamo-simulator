@@ -14,6 +14,7 @@ from partitioning import init_membership_list
 
 
 def start_process(n_id, port, view, membership_information, params, network_params):
+    print("--------Starting process with params:", params)
     SERVER_ADDRESS = f"localhost:{port}"
     server = grpc.server(futures.ThreadPoolExecutor())
     add_DynamoInterfaceServicer_to_server(DynamoNode(
