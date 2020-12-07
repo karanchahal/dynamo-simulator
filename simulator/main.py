@@ -25,6 +25,7 @@ app.config['WTF_CSRF_ENABLED'] = False
 Bootstrap(app)
 
 processes_future = None
+context = None
 START_PORT = 2333
 CLIENT_ID = 1
 
@@ -45,21 +46,12 @@ def index():
             'w_timeout': form.dynamo_form.w_timeout.data,
             'r_timeout': form.dynamo_form.r_timeout.data
         })
-        #TODO: Update this
         membership_information = init_membership_list(params)
-        # membership_information = {
-        #     0: [1], # key space -> (2,4]
-        #     1: [2], # key space -> (4,6]
-        #     2: [3], # key space -> (6,8]
-        #     3: [0] # key space -> (0,2]
-        # }
         network_params = NetworkParams({
             'latency': form.network_form.latency.data,
             'randomize_latency': form.network_form.randomize_latency.data
         })
         processes_future = start_db_background(params, membership_information, network_params, wait=True, start_port=START_PORT)
-        # print(processes_future.done())
-        # session['processes_future'] = processes_future
         session['server_name'] = form.dynamo_form.server_name.data
         session['params'] = params.__dict__
         session['network_params'] = network_params.__dict__
@@ -69,9 +61,9 @@ def index():
 
 @app.route('/client', methods=['GET', 'POST'])
 def client():
+    global context
     form = ClientForm()
     response = ""
-    context = None
     if form.is_submitted():
         if form.get_button.data:
             print("GET:", form.get_button.data)
