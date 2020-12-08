@@ -21,7 +21,8 @@ def main():
         'w_timeout': 2,
         'r_timeout': 2,
         'R': 2,
-        'W': 2
+        'W': 2,
+        'gossip': False
     }
 
     network_params = {
@@ -59,8 +60,10 @@ def main():
     mem2, repmem2 =  client_get_memory(ports[2])
     mem3, repmem3 =  client_get_memory(ports[3])
 
-
+    s = time.time()
     response = client_get(port, 0, key)
+    e = time.time()
+    print(f"GET {e - s} secs")
     print(f"Get response {response}")
     assert response.items[0].val == val
     context = response.items[0].context 
@@ -69,7 +72,10 @@ def main():
     assert response.items[0].val == val2
 
     # Check clock count updation on passing valid context obtained from GET
+    s = time.time()
     client_put(port, 0, key, val2, context=context)
+    e = time.time()
+    print(f"PUT {e - s} secs")
     response = client_get(port, 0, key)
     assert response.items[0].val == val2
     assert response.items[0].context.clock[0].count == 2

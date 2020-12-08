@@ -78,4 +78,14 @@ def client_fail(port, fail=True):
         stub = DynamoInterfaceStub(channel)
         request = FailRequest(fail=fail)
         response = stub.Fail(request)
+
+def client_gossip(port):
+    """
+    Turn gossip protocol on for this node
+    """
+    with grpc.insecure_channel(f"localhost:{port}") as channel:
+        stub = DynamoInterfaceStub(channel)
+        request = NoParams()
+        response = stub.Gossip(request)
+    return response
 # client_put(2333, 1)

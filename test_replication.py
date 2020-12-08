@@ -8,23 +8,6 @@ import random
 from spawn import start_db
 from structures import Params
 
-def parallel_runner(num_tasks=4):
-    s = time.time()
-    executor = futures.ThreadPoolExecutor(max_workers=1)
-    fut = set([])
-    ports = [2333,2334,2335,2336]
-
-    for i in range(1000):
-        key_val = random.randint(0,7) # assuming key space is of size 8
-        port = ports[random.randint(0,3)]
-        fut.add(executor.submit(client_get_memory, port))
-
-    done, not_done = futures.wait(fut)
-    e = time.time()
-    # print(done)
-    print(f"Time taken : {e - s} secs")
-    print(f"Pending requests {not_done}")
-
 
 def test_replication():
     """
@@ -38,10 +21,11 @@ def test_replication():
         'num_proc' : 4,
         'hash_size': 3, # 2^3 = 8 
         'Q' : 2, # 
-        'N' : 2,
+        'N' : 3,
         'w_timeout': 2,
         'R': 1,
-        'W': 1
+        'W': 2,
+        'gossip': False
     }
     membership_information = {
         0: [1], # key space -> (2,4]
@@ -74,10 +58,7 @@ def test_replication():
     assert(key_val not in mem2 and key_val in repmem2[0].mem)
     assert(key_val not in mem3 and 0 not in repmem3)
     print("replication test successful")
-    # node 
-    # exit()
-    # server.shutdown(wait=False)
 
 
-# parallel_runner()
+
 test_replication()

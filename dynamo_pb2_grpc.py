@@ -29,10 +29,20 @@ class DynamoInterfaceStub(object):
                 request_serializer=dynamo__pb2.GetRequest.SerializeToString,
                 response_deserializer=dynamo__pb2.ReadResponse.FromString,
                 )
+        self.Heartbeat = channel.unary_unary(
+                '/dynamo.DynamoInterface/Heartbeat',
+                request_serializer=dynamo__pb2.HeartbeatRequest.SerializeToString,
+                response_deserializer=dynamo__pb2.HeartbeatRequest.FromString,
+                )
         self.Replicate = channel.unary_unary(
                 '/dynamo.DynamoInterface/Replicate',
                 request_serializer=dynamo__pb2.PutRequest.SerializeToString,
                 response_deserializer=dynamo__pb2.ReplicateResponse.FromString,
+                )
+        self.TransferData = channel.unary_unary(
+                '/dynamo.DynamoInterface/TransferData',
+                request_serializer=dynamo__pb2.DataBunchRequest.SerializeToString,
+                response_deserializer=dynamo__pb2.DataBunchResponse.FromString,
                 )
         self.PrintMemory = channel.unary_unary(
                 '/dynamo.DynamoInterface/PrintMemory',
@@ -43,6 +53,11 @@ class DynamoInterfaceStub(object):
                 '/dynamo.DynamoInterface/Fail',
                 request_serializer=dynamo__pb2.FailRequest.SerializeToString,
                 response_deserializer=dynamo__pb2.FailRequest.FromString,
+                )
+        self.Gossip = channel.unary_unary(
+                '/dynamo.DynamoInterface/Gossip',
+                request_serializer=dynamo__pb2.NoParams.SerializeToString,
+                response_deserializer=dynamo__pb2.NoParams.FromString,
                 )
         self.PutStreaming = channel.stream_stream(
                 '/dynamo.DynamoInterface/PutStreaming',
@@ -77,7 +92,19 @@ class DynamoInterfaceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Heartbeat(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Replicate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def TransferData(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -92,6 +119,12 @@ class DynamoInterfaceServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def Fail(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Gossip(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -127,10 +160,20 @@ def add_DynamoInterfaceServicer_to_server(servicer, server):
                     request_deserializer=dynamo__pb2.GetRequest.FromString,
                     response_serializer=dynamo__pb2.ReadResponse.SerializeToString,
             ),
+            'Heartbeat': grpc.unary_unary_rpc_method_handler(
+                    servicer.Heartbeat,
+                    request_deserializer=dynamo__pb2.HeartbeatRequest.FromString,
+                    response_serializer=dynamo__pb2.HeartbeatRequest.SerializeToString,
+            ),
             'Replicate': grpc.unary_unary_rpc_method_handler(
                     servicer.Replicate,
                     request_deserializer=dynamo__pb2.PutRequest.FromString,
                     response_serializer=dynamo__pb2.ReplicateResponse.SerializeToString,
+            ),
+            'TransferData': grpc.unary_unary_rpc_method_handler(
+                    servicer.TransferData,
+                    request_deserializer=dynamo__pb2.DataBunchRequest.FromString,
+                    response_serializer=dynamo__pb2.DataBunchResponse.SerializeToString,
             ),
             'PrintMemory': grpc.unary_unary_rpc_method_handler(
                     servicer.PrintMemory,
@@ -141,6 +184,11 @@ def add_DynamoInterfaceServicer_to_server(servicer, server):
                     servicer.Fail,
                     request_deserializer=dynamo__pb2.FailRequest.FromString,
                     response_serializer=dynamo__pb2.FailRequest.SerializeToString,
+            ),
+            'Gossip': grpc.unary_unary_rpc_method_handler(
+                    servicer.Gossip,
+                    request_deserializer=dynamo__pb2.NoParams.FromString,
+                    response_serializer=dynamo__pb2.NoParams.SerializeToString,
             ),
             'PutStreaming': grpc.stream_stream_rpc_method_handler(
                     servicer.PutStreaming,
@@ -214,6 +262,23 @@ class DynamoInterface(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def Heartbeat(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/Heartbeat',
+            dynamo__pb2.HeartbeatRequest.SerializeToString,
+            dynamo__pb2.HeartbeatRequest.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def Replicate(request,
             target,
             options=(),
@@ -227,6 +292,23 @@ class DynamoInterface(object):
         return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/Replicate',
             dynamo__pb2.PutRequest.SerializeToString,
             dynamo__pb2.ReplicateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def TransferData(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/TransferData',
+            dynamo__pb2.DataBunchRequest.SerializeToString,
+            dynamo__pb2.DataBunchResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -261,6 +343,23 @@ class DynamoInterface(object):
         return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/Fail',
             dynamo__pb2.FailRequest.SerializeToString,
             dynamo__pb2.FailRequest.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Gossip(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/dynamo.DynamoInterface/Gossip',
+            dynamo__pb2.NoParams.SerializeToString,
+            dynamo__pb2.NoParams.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

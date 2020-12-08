@@ -18,6 +18,12 @@ message VectorClockItem {
   int64 count = 2;
 }
 
+message HeartbeatRequest {
+  int64 sent_to = 1;
+  int64 from_n = 2;
+  bool succ = 3;
+}
+
 message VectorClock {
   repeated VectorClockItem clock = 1;
 }
@@ -73,7 +79,7 @@ message KeyValStore {
 }
 
 message NoParams {
-
+  
 }
 
 message Memory {
@@ -89,6 +95,16 @@ message FailRequest {
   bool fail = 1;
 }
 
+message DataBunchResponse {
+  int64 sent_from = 3;
+  bool succ = 2;
+}
+
+message DataBunchRequest {
+  int64 sent_from = 1;
+  repeated PutRequest requests = 2;
+}
+
 
 service DynamoInterface {
 
@@ -98,13 +114,19 @@ service DynamoInterface {
 
     rpc Read (GetRequest) returns (ReadResponse);
 
+    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatRequest);
+
     rpc Replicate (PutRequest) returns (ReplicateResponse);
+
+    rpc TransferData(DataBunchRequest) returns (DataBunchResponse);
 
     // debuggin functions
 
     rpc PrintMemory (NoParams) returns (MemResponse);
 
     rpc Fail (FailRequest) returns (FailRequest);
+
+    rpc Gossip(NoParams) returns (NoParams);
 
     rpc PutStreaming (stream PutRequest) returns (stream PutResponse);
 
