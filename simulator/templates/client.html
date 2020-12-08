@@ -32,8 +32,22 @@ Dyanamo Simulator
       <h2 class="pt-4 pb-2">Send Requests</h2>
       {{ wtf.quick_form(form) }}
 
-      <h3 class="pt-4 pb-2">Response:</h3>
-      <p class="pt-5">{{ response }}</p>
+      <h3 class="pt-4 pb-2">Results</h3>
+      {% if response %}
+      <p class="pt-5">Response: {{ response }}</p>
+      {% endif %}
+
+      {% if duration != "" %}
+      <p>Duration: {{ duration }} ms</p>
+      {% endif %}
+
+      {% if stats != "" %}
+      <p>Statistics: {{ stats }}</p>
+      {% endif %}
+
+      {% if url != "" %}
+      <img src={{url}} height="auto" width="100%">
+      {% endif %}
 
     </div>
   </div>
