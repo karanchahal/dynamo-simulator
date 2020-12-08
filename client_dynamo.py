@@ -21,9 +21,9 @@ def get(stub, client_id, key):
     """
     Regular get request
     """
-    request = GetRequest(client_id=client_id, key=key)
+    request = GetRequest(client_id=client_id, key=key, hinted_handoff=-1)
     response : GetResponse = stub.Get(request)
-    print(f"Get Response recieved from {response.server_id}")
+    print(f"Final Get Response recieved from {response.server_id}")
     return response
 
 def put(stub, request: PutRequest):
@@ -31,7 +31,7 @@ def put(stub, request: PutRequest):
     Regular put request
     """
     response : PutResponse = stub.Put(request)
-    print(f"Put Response recieved from {response.server_id}")
+    print(f"Final Put Response recieved from {response.server_id}")
     return response
 
 

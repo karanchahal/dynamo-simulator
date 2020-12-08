@@ -17,10 +17,10 @@ def main():
         'num_proc' : 4,
         'hash_size': 3, # 2^3 = 8 
         'Q' : 2, # 
-        'N' : 2,
+        'N' : 2, # actually N-1, excluding coordinator node
         'w_timeout': 2,
         'r_timeout': 2,
-        'R': 1,
+        'R': 2,
         'W': 2
     }
 

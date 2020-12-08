@@ -19,10 +19,11 @@ def test_failure():
         'num_proc' : 4,
         'hash_size': 3, # 2^3 = 8 
         'Q' : 2, # 
-        'N' : 2,
+        'N' : 3,
         'w_timeout': 2,
-        'R': 1,
-        'W': 2
+        'r_timeout': 2,
+        'R': 3,
+        'W': 3
     }
     membership_information = {
         0: [1], # key space -> (2,4]
@@ -48,5 +49,14 @@ def test_failure():
     mem1, repmem1 =  client_get_memory(ports[1])
     mem2, repmem2 =  client_get_memory(ports[2])
     mem3, repmem3 =  client_get_memory(ports[3])
+
+    # check that mem 3 stores info that should have been in 1
+    assert 2 in repmem3[0].mem
+
+    # now fire a get request on node 0 for key 2 and make sure infomraiotn from all replicas is collated.
+    response = client_get(port, 0, key_val)
+
+    print(f"Get response {response}")
+
 
 test_failure()
