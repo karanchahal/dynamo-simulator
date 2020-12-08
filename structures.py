@@ -45,6 +45,7 @@ class Params:
         self.W: int = None # the number of succ write request needed
         self.w_timeout: int = None # the number of seconds the timeout for write replication is
         self.r_timeout: int = None # the number of seconds the timeout for read replication is
+        self.gossip: bool = None # turn on gossip or not
         self.__dict__ = d
 
     def __repr__(self):

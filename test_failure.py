@@ -1,14 +1,12 @@
 from concurrent import futures
 import dynamo_pb2
 from dynamo_pb2 import PutRequest
-# import structures
-# import partitioning
 from partitioning import init_membership_list
 from client_dynamo import client_put, client_get, client_fail, client_get_memory
 import time
 from spawn import start_db, start_db_background
 from structures import NetworkParams, Params
-
+import time
 
 def test_failure():
     num_tasks = 2
@@ -31,16 +29,26 @@ def test_failure():
         2: [3], # key space -> (6,8]
         3: [0] # key space -> (0,2]
     }
-    params = Params(params)
-    server = executor.submit(start_db, params, membership_information)
+    network_params = {
+        'latency': 0,
+        'randomize_latency': False,
+        'drop_prob': 0
+    }
 
+    params = Params(params)
+
+    network_params = NetworkParams(network_params)
+    server = start_db_background(params, membership_information, network_params, num_tasks=2)
+
+    time.sleep(1)
+
+    # server = executor.submit(start_db, params, membership_information)
     # fire client request
+    s = time.time()
     ports = [2333,2334,2335,2336]
     start_node = 3 # let's hit node 3 with this put request
     key_val = 2 # this should go into node 0
     port = ports[start_node]
-
-    time.sleep(1)
 
     client_fail(2334)
     client_put(port, 0, key_val)
@@ -57,6 +65,8 @@ def test_failure():
     response = client_get(port, 0, key_val)
 
     print(f"Get response {response}")
+    e = time.time()
+    print(f"Time taken {e - s} secs")
 
 
 test_failure()
