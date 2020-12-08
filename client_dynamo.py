@@ -9,6 +9,10 @@ import grpc
 from dynamo_pb2_grpc import DynamoInterfaceStub
 from dynamo_pb2 import GetRequest, GetResponse, PutRequest, PutResponse, VectorClock, VectorClockItem, NoParams, FailRequest
 
+import logging
+logger = logging.getLogger('dynamo_client')
+logger.setLevel(logging.ERROR)
+
 def bidirectional_get(stub, client_id):
     """
     The stub contains a method which can give the client a response iterator
@@ -23,7 +27,7 @@ def get(stub, client_id, key):
     """
     request = GetRequest(client_id=client_id, key=key)
     response : GetResponse = stub.Get(request)
-    print(f"Get Response recieved from {response.server_id}")
+    logging.info(f"Get Response recieved from {response.server_id}")
     return response
 
 def put(stub, request: PutRequest):
@@ -31,12 +35,12 @@ def put(stub, request: PutRequest):
     Regular put request
     """
     response : PutResponse = stub.Put(request)
-    print(f"Put Response recieved from {response.server_id}")
+    logging.info(f"Put Response recieved from {response.server_id}")
     return response
 
 
 def client_get(port, client_id, key=1):
-    print("-------------Sending GET request !!!--------------")
+    logging.info("-------------Sending GET request !!!--------------")
     with grpc.insecure_channel(f"localhost:{port}") as channel:
         stub = DynamoInterfaceStub(channel)
         response = get(stub, client_id, key)
