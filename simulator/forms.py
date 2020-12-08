@@ -48,7 +48,7 @@ class DynamoForm(FlaskForm):
 
 class NetworkForm(FlaskForm):
     randomize_latency = BooleanField('Randomize network latency?', default=False)
-    latency = IntegerField('Max network latency (in ms)', default=0)
+    latency = IntegerField('Max network latency (in ms)', default=10)
 
 class CombinedForm(FlaskForm):
     dynamo_form = FormField(DynamoForm)
@@ -56,7 +56,9 @@ class CombinedForm(FlaskForm):
     submit = SubmitField('Submit')
 
 class ClientForm(FlaskForm):
-    key = IntegerField('Key')
-    val = StringField('Value')
+    key = IntegerField('Key', default=1)
+    val = StringField('Value', default=1)
+    num_requests = IntegerField('Number of requests', default=1)
     get_button = SubmitField('GET')
     put_button = SubmitField('PUT')
+    clear = BooleanField('Clear Plot', default=True)
