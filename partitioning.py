@@ -3,7 +3,7 @@ from typing import Dict, List, Set
 from structures import Params
 
 def is_pow_of_two(n: int) -> bool:
-    """
+    """ 
     Helper function to hceck if num is a power of two.
     """
     print(f"{n} and {(n & (n-1) == 0) and n != 0}")
@@ -60,10 +60,10 @@ def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List
     S - > number of nodes
 
     For each node, to find it's replicas. We find it's tokens (M = T/S tokens).
-    For each of these tokens, we look at N/M tokens ahead and find the nodes responsible for those tokens.
+    For each of these tokens, we look at (N-1)/M nodes ahead and find the nodes responsible for those tokens.
 
 
-    Hence, we would have M*(N/M) total tokens to look at. We find out the nodes responsible for those tokens
+    Hence, we would have M*(N/M) total nodes to look at. We find out the nodes responsible for those tokens
     and those nodes form our preference list.
 
     Please note, that we can have less than N number of nodes as multiple tokens might map to the same node.
@@ -85,15 +85,16 @@ def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List
     '''
     # get positions of each server in the ring
 
-    key_space = pow(2, params.hash_size)
-    total_v_nodes = round(key_space / params.Q)
-    v_nodes_per_proc = round(total_v_nodes / params.num_proc)
-    max_token = total_v_nodes - 1
+    key_space = pow(2, params.hash_size) # 256
+    total_v_nodes = round(key_space / params.Q) # 128
+    v_nodes_per_proc = round(total_v_nodes / params.num_proc) # 128/8= 16
     token2node = createtoken2node(membership_info) # could have multiple nodes for a single token
     N = params.N
-    n_per_token = round(N / v_nodes_per_proc)
+    n_per_token = round(N / v_nodes_per_proc) # will be 0 if N is < number of tokens per node
     pref_list = set([])
     token_list = []
+
+    print(f"Key space: {key_space}, Total V Nodes in ring: {total_v_nodes}, Tokens to 1 node: {v_nodes_per_proc}")
     for token in membership_info[n_id]:
         i = 1
         nodes_added = 0
@@ -107,6 +108,8 @@ def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List
 
             if nodes_added == n_per_token-1:
                 break
+            
+            print("end")
 
             i += 1
     # Note: this will trigger if we do not have at least N unique replicas

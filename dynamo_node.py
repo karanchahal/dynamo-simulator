@@ -73,6 +73,7 @@ class DynamoNode(DynamoInterfaceServicer):
         """
         super().__init__()
 
+        print(f"here 1")
         self.params = params
         self.network_params = network_params
 
@@ -88,11 +89,12 @@ class DynamoNode(DynamoInterfaceServicer):
         self.fail = False
 
         # a list of > N nodes that are closest to current node, (clockwise)
+        print(f"here 2 {self.params.gossip}")
         self.big_pref_list, _ = get_preference_list_skip_unhealthy(n_id=n_id, membership_info=membership_information, params=params)
         self.preference_list = list(self.big_pref_list)[:self.params.N]
-
+        print(f"here 4 {self.params.gossip}")
         self.token2node = createtoken2node(membership_information)
-
+        print(f"here 3 {self.params.gossip}")
         # in memory data store of key, values
         self.memory_of_node_lock = threading.Lock()
         self.memory_of_node: Dict[int, PutRequest] = {}
@@ -255,8 +257,6 @@ class DynamoNode(DynamoInterfaceServicer):
             logger.error(f"Error with [TransferData] at node = {self.n_id} at port {self.view[self.n_id]}")
             return DataBunchResponse(sent_from=self.n_id, succ=False)
             
-        
-
 
     def Get(self, request: GetRequest, context):
         """
@@ -357,6 +357,8 @@ class DynamoNode(DynamoInterfaceServicer):
         node = self.token2node[req_token]
 
         # if curr node is not the coordinator
+        # TODO: if part of top N nodes in ring, then become coordinator, keep in mind to store data in replica
+        # rest all is same, keep in mind to store data in non replica memory of node that is owner.
         if self.n_id != node:
             # this request needs to be rerouted to first node in nodes
             return self.reroute(node, "get")
@@ -661,7 +663,7 @@ class DynamoNode(DynamoInterfaceServicer):
             self.failed_nodes.add(node)
         self.failed_node_lock.release()
     
-    def get_spare_node(self, token_fail, tokens_used: List[int],  req: PutRequest):
+    def get_spare_node(self, token_fail, tokens_used: List[int], req: PutRequest):
         """
         Move up the list and get a node that has not been used by the current request.
         This node will be used in the hinted handoff
@@ -675,6 +677,7 @@ class DynamoNode(DynamoInterfaceServicer):
         # move up clockwise
         token_used = None
         while True:
+            # TODO: fix this infinite scroll
             new_token = (last_token_used + 1) % self.params.num_proc
             new_node = self.token2node[new_token]
             if new_node not in nodes_used:
