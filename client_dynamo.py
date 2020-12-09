@@ -11,7 +11,7 @@ from dynamo_pb2 import GetRequest, GetResponse, PutRequest, PutResponse, VectorC
 
 import logging
 logger = logging.getLogger('dynamo_client')
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 def bidirectional_get(stub, client_id):
     """

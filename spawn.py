@@ -51,8 +51,9 @@ def start_db(params: Params, membership_information: Dict[int, List[int]], netwo
     """
     processes : List[Process] = []
     view = create_view(start_port=start_port, num_proc=params.num_proc)
-    print(f"Membership Info {membership_information}")
+    print(f"Membership Info {membership_information} NUmber of processes {params.num_proc}")
     for i in range(params.num_proc):
+        print(i)
         process = start_process(i, view[i], view, membership_information, params, network_params)
         processes.append(process)
 

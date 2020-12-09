@@ -16,7 +16,7 @@ import sys
 import logging
 
 logger = logging.getLogger('dynamo_node')
-logger.setLevel(logging.ERROR)
+logger.setLevel(logging.INFO)
 
 def replicate_rpc(view, rep_n, request) -> ReplicateResponse:
     """
@@ -107,9 +107,12 @@ class DynamoNode(DynamoInterfaceServicer):
         # keep track of all tokems used by a request
         self.tokens_used: Dict[int, List[int]] = {}
 
+        print(f"here {self.params.gossip}")
         # gossip protocol
         if self.params.gossip == True:
             self.start_gossip_protocol()
+        
+        print("not here")
 
     def scan_and_send(self, n_id):
         vals_to_send = []
