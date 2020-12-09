@@ -45,6 +45,7 @@ class DynamoForm(FlaskForm):
     W = IntegerField('W', default=1)
     w_timeout = IntegerField('Coordinator node write timeout (in seconds)', default=2)
     r_timeout = IntegerField('Coordinator node read timeout (in seconds)', default=2)
+    gossip = BooleanField('Add gossip protocol', default=False)
 
 class NetworkForm(FlaskForm):
     randomize_latency = BooleanField('Randomize network latency?', default=False)

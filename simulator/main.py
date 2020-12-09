@@ -77,8 +77,11 @@ def index():
             'R': form.dynamo_form.R.data,
             'W': form.dynamo_form.W.data,
             'w_timeout': form.dynamo_form.w_timeout.data,
-            'r_timeout': form.dynamo_form.r_timeout.data
+            'r_timeout': form.dynamo_form.r_timeout.data,
+            'gossip': form.dynamo_form.gossip.data
         })
+
+        print(params)
         membership_information = init_membership_list(params)
         network_params = NetworkParams({
             'latency': form.network_form.latency.data,
