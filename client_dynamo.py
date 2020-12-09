@@ -25,9 +25,13 @@ def get(stub, client_id, key):
     """
     Regular get request
     """
-    request = GetRequest(client_id=client_id, key=key)
+    request = GetRequest(client_id=client_id, key=key, hinted_handoff=-1)
     response : GetResponse = stub.Get(request)
+<<<<<<< HEAD
     logging.info(f"Get Response recieved from {response.server_id}")
+=======
+    print(f"Final Get Response recieved from {response.server_id}")
+>>>>>>> get-failure
     return response
 
 def put(stub, request: PutRequest):
@@ -35,7 +39,11 @@ def put(stub, request: PutRequest):
     Regular put request
     """
     response : PutResponse = stub.Put(request)
+<<<<<<< HEAD
     logging.info(f"Put Response recieved from {response.server_id}")
+=======
+    print(f"Final Put Response recieved from {response.server_id}")
+>>>>>>> get-failure
     return response
 
 
@@ -82,4 +90,14 @@ def client_fail(port, fail=True):
         stub = DynamoInterfaceStub(channel)
         request = FailRequest(fail=fail)
         response = stub.Fail(request)
+
+def client_gossip(port):
+    """
+    Turn gossip protocol on for this node
+    """
+    with grpc.insecure_channel(f"localhost:{port}") as channel:
+        stub = DynamoInterfaceStub(channel)
+        request = NoParams()
+        response = stub.Gossip(request)
+    return response
 # client_put(2333, 1)

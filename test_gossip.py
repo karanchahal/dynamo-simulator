@@ -2,13 +2,13 @@ from concurrent import futures
 import dynamo_pb2
 from dynamo_pb2 import PutRequest
 from partitioning import init_membership_list
-from client_dynamo import client_put, client_get, client_fail, client_get_memory
+from client_dynamo import client_put, client_get, client_fail, client_get_memory, client_gossip
 import time
 from spawn import start_db, start_db_background
 from structures import NetworkParams, Params
 import time
 
-def test_failure():
+def test_gossip():
     num_tasks = 2
     executor = futures.ThreadPoolExecutor(max_workers=num_tasks)
 
@@ -22,7 +22,7 @@ def test_failure():
         'r_timeout': 2,
         'R': 3,
         'W': 3,
-        'gossip': False
+        'gossip' : False
     }
     membership_information = {
         0: [1], # key space -> (2,4]
@@ -39,13 +39,13 @@ def test_failure():
     params = Params(params)
 
     network_params = NetworkParams(network_params)
-    server = start_db_background(params, membership_information, network_params, num_tasks=2)
+    server = start_db_background(params, membership_information, network_params, num_tasks=2, wait=True)
 
     time.sleep(1)
 
-    # server = executor.submit(start_db, params, membership_information)
-    # fire client request
-    s = time.time()
+    # # server = executor.submit(start_db, params, membership_information)
+    # # fire client request
+    # s = time.time()
     ports = [2333,2334,2335,2336]
     start_node = 3 # let's hit node 3 with this put request
     key_val = 2 # this should go into node 0
@@ -54,20 +54,29 @@ def test_failure():
     client_fail(2334)
     client_put(port, 0, key_val)
 
-    mem0, repmem0 =  client_get_memory(ports[0])
+    # print memory of node 1 and 3
     mem1, repmem1 =  client_get_memory(ports[1])
-    mem2, repmem2 =  client_get_memory(ports[2])
     mem3, repmem3 =  client_get_memory(ports[3])
 
-    # check that mem 3 stores info that should have been in 1
-    assert 2 in repmem3[0].mem
+    # replication of key 2 at node 0, at node 2 and 3. Node 1's hinted handoff in 3
+    # turn gossip on
 
-    # now fire a get request on node 0 for key 2 and make sure infomraiotn from all replicas is collated.
-    response = client_get(port, 0, key_val)
+    client_fail(2334, fail=False) # unfail
 
-    print(f"Get response {response}")
-    e = time.time()
-    print(f"Time taken {e - s} secs")
+    client_gossip(2336)
 
+    # wait for some time and check memory of 3 and 1 again
 
-test_failure()
+    time.sleep(2)
+
+    mem1_update, repmem1_update =  client_get_memory(ports[1])
+    mem3_update, repmem3_update =  client_get_memory(ports[3])
+
+    assert(key_val not in repmem1[0].mem and key_val in repmem1_update[0].mem) # key is now there
+
+    assert(key_val in repmem3[0].mem and key_val not in repmem3_update[0].mem)
+
+    print(f"Test gossip has passed")
+
+if __name__ == "__main__":
+    test_gossip()

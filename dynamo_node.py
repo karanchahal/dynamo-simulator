@@ -1,7 +1,7 @@
 
 from dynamo_pb2_grpc import DynamoInterfaceServicer
 from typing import List, Tuple, Dict, Union
-from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem, Memory, VectorClockItem, FailRequest
+from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem, Memory, VectorClockItem, FailRequest, HeartbeatRequest, DataBunchRequest, DataBunchResponse
 from partitioning import createtoken2node, find_owner, get_ranges, get_preference_list_skip_unhealthy
 from structures import NetworkParams, Params, FutureInformation
 from typing import List, Tuple, Dict, Union, Set
@@ -38,6 +38,26 @@ def read_rpc(view, rep_n, request) -> ReadResponse:
         response = stub.Read(request)
     return response
 
+def heartbeat_rpc(view: Dict[int, int], rep_n: int, request: HeartbeatRequest) -> HeartbeatRequest:
+    """
+    Send a RPC call to a process telling it to read the data corresponding to a key
+    """
+    port = view[rep_n]
+    with grpc.insecure_channel(f"localhost:{port}") as channel:
+        stub = DynamoInterfaceStub(channel)
+        response = stub.Heartbeat(request)
+    return response
+
+def transfer_data_rpc(view: Dict[int, int], rep_n: int, request: DataBunchRequest) -> DataBunchResponse:
+    """
+    Send a RPC call to a process telling it to add the following data to it's memory buffer
+    """
+    port = view[rep_n]
+    with grpc.insecure_channel(f"localhost:{port}") as channel:
+        stub = DynamoInterfaceStub(channel)
+        response = stub.TransferData(request)
+    return response
+
 class DynamoNode(DynamoInterfaceServicer):
     """
     This class is the entry point to a dynamo node.
@@ -68,37 +88,198 @@ class DynamoNode(DynamoInterfaceServicer):
         self.fail = False
 
         # a list of > N nodes that are closest to current node, (clockwise)
-        self.big_pref_list = get_preference_list_skip_unhealthy(n_id=n_id, membership_info=membership_information, params=params)
+        self.big_pref_list, _ = get_preference_list_skip_unhealthy(n_id=n_id, membership_info=membership_information, params=params)
         self.preference_list = list(self.big_pref_list)[:self.params.N]
 
         self.token2node = createtoken2node(membership_information)
 
         # in memory data store of key, values
+        self.memory_of_node_lock = threading.Lock()
         self.memory_of_node: Dict[int, PutRequest] = {}
+
+        self.memory_of_replicas_lock = threading.Lock()
         self.memory_of_replicas: Dict[int, Memory] = {}
 
         # local view of failed nodes
         self.failed_node_lock = threading.Lock()
-        self.failed_nodes = set({})
+        self.failed_nodes: Set[int] = set({})
 
         # keep track of all tokems used by a request
         self.tokens_used: Dict[int, List[int]] = {}
 
-        # TODO: start gossip protocol
+        # gossip protocol
+        if self.params.gossip == True:
+            self.start_gossip_protocol()
+
+    def scan_and_send(self, n_id):
+        vals_to_send = []
+        self.memory_of_replicas_lock.acquire()
+        for k, mem_of_n in self.memory_of_replicas.items():
+            # iterate over memory of all n's
+            for key, val in mem_of_n.mem.items():
+                if val.hinted_handoff == n_id:
+                    vals_to_send.append(val)
+        self.memory_of_replicas_lock.release()
+        if vals_to_send == []:
+            # nothing to send
+            return
+        logger.info(f"--------Vals to send ? {vals_to_send}")
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        request = DataBunchRequest(sent_from=self.n_id, requests=vals_to_send)
+
+        def catch_callback(fut):
+            """
+            If future returns successfully, then we can go ahead and remove the extra
+            stuff from the local memory
+            """
+            nonlocal vals_to_send
+
+            if fut.exception() or fut.result().succ == False:
+                logger.error(f"Error recieved in [tranferring data], reverse health of the node {n_id}")
+                self.update_failed_nodes(n_id)
+            else:
+                logger.info(f"Success in transferring data at node {n_id}, we can delete our data now")
+                to_del = []
+                self.memory_of_replicas_lock.acquire()
+                for k, mem_of_n in self.memory_of_replicas.items():
+                    # iterate over memory of all n's
+                    for key, val in mem_of_n.mem.items():
+                        if val in vals_to_send:
+                            to_del.append((k, key))
+                
+                for k1,k2 in to_del:
+                    del self.memory_of_replicas[k1].mem[k2]
+                
+                logger.info(f"Deletion of {n_id}'s hinted handoff information successfull")
+                self.memory_of_replicas_lock.release()
+
+
+
+        fut = executor.submit(transfer_data_rpc, self.view, n_id, request)
+        fut.add_done_callback(catch_callback)
+        
+
+    
+    def start_gossip_protocol(self):
+        # start a thread in the background that pings random nodes to determine health
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        mem_lock = threading.Lock()
+        fut2req = {}
+        def get_heartbeat(fut):
+            nonlocal mem_lock
+            nonlocal fut2req
+
+            if fut.exception():
+                
+                # heartbeat failed, add node to unhealthy
+                mem_lock.acquire()
+                bad_n_id = fut2req[fut]
+                mem_lock.release()
+                logger.error(f"Future at node {self.n_id} for node {bad_n_id} had exception {fut.exception()}") 
+                self.update_failed_nodes(bad_n_id, remove=False)
+            else:
+                # all good with node, do nothing !
+                res = fut.result()
+                if res.succ != True:
+                    # all bad
+                    self.update_failed_nodes(res.sent_to, remove=False)
+                else:
+                    self.update_failed_nodes(res.sent_to, remove=True)
+                    # do scan in replica memory and send it to responsible node
+                    self.scan_and_send(res.sent_to)
+            
+            # delete fut from dict, to prevent memeory leak
+            mem_lock.acquire()
+            del fut2req[fut]
+            mem_lock.release()
+
+
+        def ping_random_node():
+            nonlocal executor
+            nonlocal mem_lock
+            nonlocal fut2req
+
+            while True:
+                n_id = self.n_id
+                while n_id == self.n_id:
+                    n_id = random.randint(0,self.params.num_proc-1)
+                
+                request = HeartbeatRequest(sent_to=n_id, from_n=self.n_id)
+                fut = executor.submit(heartbeat_rpc, self.view, n_id, request)
+
+                fut.add_done_callback(get_heartbeat)
+
+                mem_lock.acquire()
+                fut2req[fut] = n_id
+                mem_lock.release()
+
+                # sleep for 2 seconds
+                # time.sleep(0.2)
+
+        fut = executor.submit(ping_random_node)
+
+    def TransferData(self, request: DataBunchRequest, context):
+        """
+        Adds all data to it's replica buffer or it's memory buffer ?
+        1. if data is being transferred, then assumption is that it will be transferred to replica mem
+        2. If coordinator node goes down, then some other node should take it's place, with hinted handoff.
+
+        For each data item, check if key makes it current nodes owner, if not, then store in replic memory
+        
+        TODO: add locks
+        """
+        logger.info(f"[TransferData] at node = {self.n_id} at port {self.view[self.n_id]}")
+        self._check_add_latency()
+        if self.fail:
+            logger.error(f"Node {self.n_id} at {self.view[self.n_id]} is set to fail, fail it !")
+            raise concurrent.futures.CancelledError # retirning None will result in failure
+        
+        try:
+            all_reqs = request.requests
+
+            for req in all_reqs:
+                key = req.key
+                req.hinted_handoff = -1
+                n_id = find_owner(key, self.params, self.token2node)
+                if n_id != self.n_id:
+                    self._add_to_replica_hash_table(req, n_id)
+                else:
+                    self._add_to_hash_table(req)
+            
+            return DataBunchResponse(sent_from=self.n_id, succ=True)
+
+        except:
+            logger.error(f"Error with [TransferData] at node = {self.n_id} at port {self.view[self.n_id]}")
+            return DataBunchResponse(sent_from=self.n_id, succ=False)
+            
+        
 
 
     def Get(self, request: GetRequest, context):
         """
         Get request
         """
-        logger.info(f"[GET] Get called by client {request.client_id} for key: {request.key}")
+        logger.info(f"[GET] called by client {request.client_id} for key: {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
+        self._check_add_latency()
         if self.fail:
-            logger.info(f"Node {self.n_id} is set to fail")
+            logger.info(f"Node {self.n_id} at {self.view[self.n_id]} is set to fail, fail it !")
             raise concurrent.futures.CancelledError # retirning None will result in failure
 
-        self._check_add_latency()
         response: GetResponse = self._get_from_memory(request)
         return response
+    
+    def Heartbeat(self, request: GetRequest, context):
+        """
+        Get request
+        """
+        logger.info(f"[Heartbeat] called by client {request.from_n} at node {self.n_id} at port {self.view[self.n_id]}")
+        self._check_add_latency()
+        if self.fail:
+            logger.error(f"Node {self.n_id} at {self.view[self.n_id]} is set to fail, fail it !")
+            raise concurrent.futures.CancelledError # retirning None will result in failure
+        
+        request.succ = True
+        return request
 
     def Read(self, request: GetRequest, context):
         """
@@ -106,28 +287,30 @@ class DynamoNode(DynamoInterfaceServicer):
 
         Assumes current node has key
         """
-        logger.info(f"[Read] Read called for key {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
+        logger.info(f"[Read] called for key {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
+        self._check_add_latency()
         if self.fail:
-            logger.info(f"Node {self.n_id} is set to fail")
+            logger.info(f"Node {self.n_id} at {self.view[self.n_id]} is set to fail, fail it !")
             raise concurrent.futures.CancelledError # retirning None will result in failure
         try:
-            self._check_add_latency()
             response: ReadResponse = self._get_from_hash_table(request.key, coord_nid=request.coord_nid, from_replica=True)
+            return response
         except:
             logger.error(f"----Exception {request.key} Nid: {self.n_id}")
             logger.error(f"--------------------Exception raised ! {sys.exc_info()[0]}")
+            response: ReadResponse = ReadResponse(succ=False)
         return response
 
     def Put(self, request: PutRequest , context):
         """
         Put Request
         """
-        logger.info(f"[Put] Put called for key {request.key} at node {self.n_id}")
+        logger.info(f"[Put] called for key {request.key} at node {self.n_id}")
+        self._check_add_latency()
         if self.fail:
             logger.info(f"Node {self.n_id} is set to fail")
             raise concurrent.futures.CancelledError # retirning None will result in failure
 
-        self._check_add_latency()
         # add to memory
         response: PutResponse = self._add_to_memory(request, request_type="put")
 
@@ -138,14 +321,15 @@ class DynamoNode(DynamoInterfaceServicer):
         """
         Replicate Request
         """
+        logger.info(f"[Replicate] called for key {request.key} at node {self.n_id}")
+        self._check_add_latency()
+
         if self.fail:
             logger.info(f"Node {self.n_id} is set to fail, fail it !")
             raise concurrent.futures.CancelledError # retirning None will result in failure
 
-        logger.info(f"Replication called for {request.key} at node {self.n_id}")
-        self._check_add_latency()
         # add to memory
-        self._add_to_replica_hash_table(request)
+        self._add_to_replica_hash_table(request, request.coord_nid)
 
         # construct replicate response
         response = ReplicateResponse(server_id=self.n_id, 
@@ -184,44 +368,55 @@ class DynamoNode(DynamoInterfaceServicer):
         Used by the get/read requests and add it to the hash table
         """
         if from_replica:
+            self.memory_of_replicas_lock.acquire()
             memory = self.memory_of_replicas[coord_nid].mem
+            put_request = memory[key]
+            self.memory_of_replicas_lock.release()
         else:
+            self.memory_of_node_lock.acquire()
             memory = self.memory_of_node
-        put_request = memory[key] # currently we're storing the entire PutRequest in the hash table
+            put_request = memory[key]
+            self.memory_of_node_lock.release()
+
         return ReadResponse(server_id=self.n_id,
             item=ReadItem(val=put_request.val, context=put_request.context),
-            metadata="success")
+            metadata="success", succ=True)
 
     def _add_to_hash_table(self, request):
         """
         Adds request to in memory hash table.
         """
+        self.memory_of_node_lock.acquire()
         self.memory_of_node[request.key] = request
+        self.memory_of_node_lock.release()
     
-    def _add_to_replica_hash_table(self, request):
+    def _add_to_replica_hash_table(self, request, coord_nid):
         """
         Adds request to in memory replicated hash table.
         """
-        if request.coord_nid not in self.memory_of_replicas:
-            self.memory_of_replicas[request.coord_nid] = Memory(mem={
+        self.memory_of_replicas_lock.acquire()
+        if coord_nid not in self.memory_of_replicas:
+            self.memory_of_replicas[coord_nid] = Memory(mem={
                 request.key: request
             })
         else:
-            # logger.info(f"---------- Adding k={request.key}, v={request.val}, clock={request.context.clock} to existing replica for node")
-            mem_dict = dict(self.memory_of_replicas[request.coord_nid].mem)
+            mem_dict = dict(self.memory_of_replicas[coord_nid].mem)
             mem_dict[request.key] = request
-            self.memory_of_replicas[request.coord_nid] = Memory(mem=mem_dict)
+            self.memory_of_replicas[coord_nid] = Memory(mem=mem_dict)
+        self.memory_of_replicas_lock.release()
+
 
     def _add_to_memory(self, request, request_type: str):
         """
         Adds to the memory of the node if the key is in the range of the current node.
         If not the request is rerouted to the appropriate node.
 
+        1. get coordinator node
+        2. search for closest node
+        3. walk up clockwise to find latest node
+
         Returns a GetResponse or a PutResponse
         """
-        # get coordinator node
-        # search for closest node
-        # walk up clockwise to find latest node
 
         key = request.key # assuming this key is in the key space
 
@@ -323,66 +518,144 @@ class DynamoNode(DynamoInterfaceServicer):
         Else this function will block until replication is done.
         TODO: add async operation
         """
-        # logger.info(f"Preference List is {self.preference_list}")
         
         # Stores result from all reads to check divergences
         items = []
 
+        # vaiables to deal with failures
+        replica_lock = threading.Lock()
+        completed_reps = 1
+        fut2replica = {}
+        failed_nodes = {}
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+        fs = set([])
+
         # Read data on current node
         item = self._get_from_hash_table(request.key).item
-        # logger.info(f'read found item with val: {item.val}')
+        items_lock = threading.Lock()
         items.append(item)
+        def get_callback(executor, fut2replica, token_used):
+            nonlocal completed_reps
+            nonlocal items
+            def read_rpc_callback(f):
+                nonlocal executor
+                nonlocal fut2replica
+                nonlocal token_used
+                nonlocal completed_reps
 
-        def rpc_callback(f):
-            item = f.result().item
-            logger.info(f"read done, returning item with val {item.val} and clock {item.context.clock}")
-            items.append(item)
+                if self.read_failure(f):
+                    # get all information pertinent to future
+                    s = time.time()
+                    future_information = fut2replica[f]
 
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
+                    # hinted handoff in get/read
+                    req = future_information.req
+                    req.hinted_handoff = future_information.hinted_handoff if future_information.hinted_handoff != -1 else future_information.original_node
 
-        fs = set([])
-        pref_list, token_used = self.get_top_N_healthy_pref_list()
-        for i, p in enumerate(pref_list):
-            # nessasary for storing in replica memory stores
+                    # update failed nodes, fo gossip to overturn in the future
+                    failed_node_to_add = future_information.original_node
+                    self.update_failed_nodes(failed_node_to_add)
+
+                    # get new candidate node from spare list
+                    new_n, new_token = self.get_spare_node(failed_node_to_add, token_used, req)
+                    
+                    # update used tokens memory
+                    token_used.append(new_token)
+
+                    logger.info(f"New node selected for READ hinted handoff is {new_n}, firing request")
+
+                    fut = executor.submit(read_rpc, self.view, new_n, req)
+
+                    # add callback
+                    fut.add_done_callback(read_rpc_callback)
+
+                    fut2replica[fut] = FutureInformation(req=req, hinted_handoff=new_n, original_node=future_information.original_node)
+
+                    e = time.time()
+
+                else:
+                    replica_lock.acquire()
+                    completed_reps += 1
+                    replica_lock.release()
+
+                    items_lock.acquire()
+                    item = f.result().item
+                    items.append(item)
+                    items_lock.release()
+
+                    logger.info(f"[READ callback] Successful {completed_reps} / {self.params.R}")
+
+                    if completed_reps == self.params.N:
+                        # this means our request is successfully replicated, we can RIP !
+                        logger.info("Get request has been successfully replicated :) ")
+
+            return read_rpc_callback
+
+        pref_list, tokens_used = self.get_top_N_healthy_pref_list()
+        callback = get_callback(executor, fut2replica, tokens_used)
+        logger.info(f"[Coordinate READ]Pref list at {self.view[self.n_id]} is {pref_list}")
+        for p in pref_list:
+            # nessesary for storing in replica memory stores
             request.coord_nid = self.n_id
 
-            if i > self.params.N - 1:
-                break
             if p != self.n_id:
                 # assuming no failures
                 fut = executor.submit(read_rpc, self.view, p, request)
-                fut.add_done_callback(rpc_callback)
+                # add description of future in a hash table
+                fut_info = FutureInformation(req=request, original_node=p, hinted_handoff=-1)
+                fut2replica[fut] = fut_info
+                # add callback
+                fut.add_done_callback(callback)
                 fs.add(fut)
-                # assume no failures: TODO: fix
 
         # wait until max timeout, and check if W writes have succeeded, if yes then return else fail request
         itrs = concurrent.futures.as_completed(fs, timeout=self.params.r_timeout)
-        
+        failure = False
+
         if self.params.R > 1:
             try:
                 r = 1 # already read from original node
                 for it in itrs:
-                    r += 1
-                    logger.info(f"ITRS: Reads from {r} out of {self.params.R} nodes done !")
-                    if r >= self.params.R:
-                        break
+                    if not self.read_failure(it):
+                        r += 1
+                        logger.info(f"ITRS: Reads from {r} out of {self.params.R} nodes done !")
+                        if r >= self.params.R:
+                            logger.info(f"[Read coordinator] Breaking out of loop as {r} / {self.params.R} reads finishes")
+                            break
                 # TODO: store the futures that have not finished
             except concurrent.futures.TimeoutError:
                 # time has expired
-                logger.error("Time has expired !")
+                failure = True
+                logger.error("[Read coordinator] Time has expired !")
                 return GetResponse(server_id=self.n_id, items=items, metadata="timeout", reroute=False, reroute_server_id=-1)
 
+        # TODO: add check for timeout too
+        while completed_reps < self.params.R and not failure:
+            logger.info(f"--------We are waiting for read request to pass.... {completed_reps} {self.params.R}")
+            time.sleep(0.001)
+        
+        if failure:
+            # TODO: implement succ or failure of put response
+            return GetResponse(server_id=self.n_id, succ=False)
+
+        items_lock.acquire()
         filtered_items = self._filter_latest(items)
-        response = GetResponse(server_id=self.n_id, items=filtered_items, metadata="success", reroute=False, reroute_server_id=-1)
+        items_lock.release()
+
+        response = GetResponse(server_id=self.n_id, items=filtered_items, metadata="success", reroute=False, reroute_server_id=-1, succ=True)
         return response
 
 
-    def update_failed_nodes(self, node: int):
+    def update_failed_nodes(self, node: int, remove: bool = False):
         """
         Update unhealthyness of a node, (will be reversed by gossip protocol)
         """
         self.failed_node_lock.acquire()
-        self.failed_nodes.add(node)
+        if remove:
+            if node in self.failed_nodes:
+                self.failed_nodes.remove(node)
+        else:
+            self.failed_nodes.add(node)
         self.failed_node_lock.release()
     
     def get_spare_node(self, token_fail, tokens_used: List[int],  req: PutRequest):
@@ -397,14 +670,16 @@ class DynamoNode(DynamoInterfaceServicer):
         last_token_used = tokens_used[-1]
 
         # move up clockwise
+        token_used = None
         while True:
             new_token = (last_token_used + 1) % self.params.num_proc
             new_node = self.token2node[new_token]
             if new_node not in nodes_used:
+                token_used = new_token
                 break
             # if this new node is not being used in this request, then use it.
 
-        return new_node
+        return new_node, token_used
 
     def get_top_N_healthy_pref_list(self):
         """
@@ -415,7 +690,16 @@ class DynamoNode(DynamoInterfaceServicer):
         pref_list, token_list = get_preference_list_skip_unhealthy(n_id=self.n_id, membership_info=self.membership_information, params=self.params, unhealthy_nodes=self.failed_nodes)
         self.failed_node_lock.release()
         return pref_list, token_list
+    
+    def read_failure(self, fut):
+        ret = fut.exception() is None
+        if not fut.exception():
+            res = fut.result()
+            if res.succ:
+                return False
         
+        return True
+
 
     def replicate(self, request):
         """
@@ -425,9 +709,8 @@ class DynamoNode(DynamoInterfaceServicer):
 
         Else this function will block until replication is done.
         """
-        logger.info(f"Preference List is {self.preference_list}")
         replica_lock = threading.Lock()
-        completed_reps = 0
+        completed_reps = 1
         fut2replica = {}
         failed_nodes = {}
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
@@ -436,7 +719,7 @@ class DynamoNode(DynamoInterfaceServicer):
         def get_callback(executor, fut2replica, failed_node, token_used):
             # logger.info(f"Completed_reps !! {completed_reps}")
             nonlocal completed_reps
-            def rpc_callback(f):
+            def write_rpc_callback(f):
                 """
                 If future succeeds great !
                 If future does not succeed, we have to
@@ -463,21 +746,24 @@ class DynamoNode(DynamoInterfaceServicer):
                     logger.info(f"Hinted handoff request is {req}")
 
                     # TODO: update health of node
-                    failed_node_to_add = future_information.hinted_handoff if future_information.hinted_handoff != -1 else future_information.original_node 
+                    failed_node_to_add = future_information.hinted_handoff if future_information.hinted_handoff != -1 else future_information.original_node
 
                     logger.info(f"Failed node is {failed_node_to_add}")
                     self.update_failed_nodes(failed_node_to_add)
 
-                    # TODO: implement this, get new candidate node from spare list
-                    new_n = self.get_spare_node(failed_node_to_add, token_used, req)
+                    # get new candidate node from spare list
+                    new_n, new_token = self.get_spare_node(failed_node_to_add, token_used, req)
+                    
+                    # update used tokens memory
+                    token_used.append(new_token)
 
                     logger.info(f"New node selected for hinted handoff is {new_n}")
 
                     # make the call, add the current function so that it's called again
-                    fut = executor.submit(replicate_rpc, self.view, new_n, request)
+                    fut = executor.submit(replicate_rpc, self.view, new_n, req)
 
                     # add callback
-                    fut.add_done_callback(rpc_callback)
+                    fut.add_done_callback(write_rpc_callback)
 
                     # add update information about new future in case this fails too
                     fut2replica[fut] = FutureInformation(req=req, hinted_handoff=new_n, original_node=future_information.original_node)
@@ -492,25 +778,26 @@ class DynamoNode(DynamoInterfaceServicer):
                         # this means our request is successfully replicated, we can RIP !
                         logger.info("Put request has been successfully replicated :) ")
 
-            return rpc_callback
+            return write_rpc_callback
 
-         # TODO: implement this
+        # get top N healthy nodes
         pref_list, token_used = self.get_top_N_healthy_pref_list()
 
-        # send RPC's in parallel
-        # TODO: use preference list to figure out top N healthy nodes
         callback = get_callback(executor, fut2replica, failed_nodes, token_used)
         
 
         logger.info(f"Pref List is  {pref_list}")
         for p in pref_list:
+            # nessesary for storing in replica memory stores
             request.coord_nid = self.n_id
+
             if p != self.n_id:
                 # assuming no failures
                 fut = executor.submit(replicate_rpc, self.view, p, request)
                 # add description of future in a hash table
-                fut_info = FutureInformation(req=request, original_node=p, hinted_handoff=None)
+                fut_info = FutureInformation(req=request, original_node=p, hinted_handoff=-1)
                 fut2replica[fut] = fut_info
+                # add callback
                 fut.add_done_callback(callback)
                 fs.add(fut)
                 # assume no failures: TODO: fix
@@ -543,7 +830,9 @@ class DynamoNode(DynamoInterfaceServicer):
                 # TODO: fail request
 
         # fail if timeout or completed reps have not been done
-        logger.info(f"----Completetd reps finally {completed_reps} Failure > {failure}")
+        logger.info(f"----Completetd reps finally {completed_reps} Failure > {failure}, should we wait some more ?")
+        
+        # TODO: add check for timeout too
         while completed_reps < self.params.W and not failure:
             logger.info(f"--------We are waiting....")
             time.sleep(0.001)
@@ -553,7 +842,7 @@ class DynamoNode(DynamoInterfaceServicer):
             return PutResponse(succ=False)
 
         # if we are here, we managed to replicate W nodes and the rest will be taken care of !
-        return PutResponse(server_id=self.n_id, metadata="Replicated", reroute=False, reroute_server_id=-1)
+        return PutResponse(server_id=self.n_id, metadata="Replicated", reroute=False, reroute_server_id=-1, succ=True)
     
 
     # Debugging Functions
@@ -563,25 +852,25 @@ class DynamoNode(DynamoInterfaceServicer):
         Prints current state of the node
         function meant for debugging purposes
         """
-        print("-------------------------------------------")
-        print(f"Information for {self.n_id}")
-        print(f"Preference List: {self.preference_list}")
-        print("The memory store for current node:")
+        logger.info("-------------------------------------------")
+        logger.info(f"Information for {self.n_id}")
+        logger.info(f"Preference List: {self.preference_list}")
+        logger.info("The memory store for current node:")
         for key, val in self.memory_of_node.items():
-            print(f"Key: {key} | Val: {val.val}")
+            logger.info(f"Key: {key} | Val: {val.val}")
         
-        print("The memory store for replicated items:")
+        logger.info("The memory store for replicated items:")
         for n_id, d in self.memory_of_replicas.items():
-            print(f"Replication for node {n_id}")
+            logger.info(f"Replication for node {n_id}")
             for key, val in d.mem.items():
-                print(f"Key: {key} | Original Owner {find_owner(key, self.params, self.token2node)}| Val: {val.val} | Hinted Handoff {val.hinted_handoff}")
+                logger.info(f"Key: {key} | Original Owner {find_owner(key, self.params, self.token2node)}| Val: {val.val} | Hinted Handoff {val.hinted_handoff}")
         
-        print("The membership information is:")
+        logger.info("The membership information is:")
         for key, val in self.membership_information.items():
             ranges = get_ranges(val, self.params.Q)
-            print(f" Node {key} has the following tokens {ranges}")
+            logger.info(f" Node {key} has the following tokens {ranges}")
         
-        print("-------------------------------------------")
+        logger.info("-------------------------------------------")
         
         response = MemResponse(mem=self.memory_of_node, mem_replicated=self.memory_of_replicas)
         return response
@@ -591,7 +880,14 @@ class DynamoNode(DynamoInterfaceServicer):
         Fail this node, do not respond to future requests.
         """
         self.fail = request.fail
-        print(f"Node {self.n_id} is set to fail={self.fail}")
+        logger.info(f"Node {self.n_id} is set to fail={self.fail}")
+        return request
+    
+    def Gossip(self, request, context):
+        """
+        Turn gossip on for this node
+        """
+        self.start_gossip_protocol()
         return request
 
     def _check_add_latency(self):

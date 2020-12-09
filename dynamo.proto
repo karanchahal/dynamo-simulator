@@ -10,11 +10,18 @@ message GetRequest {
     int64 client_id = 1;
     int64 key = 2;
     int64 coord_nid = 3;
+    int64 hinted_handoff = 4;
 }
 
 message VectorClockItem {
   string server_id = 1;
   int64 count = 2;
+}
+
+message HeartbeatRequest {
+  int64 sent_to = 1;
+  int64 from_n = 2;
+  bool succ = 3;
 }
 
 message VectorClock {
@@ -42,12 +49,14 @@ message GetResponse {
   string metadata = 3; // message confirming delivery
   bool reroute = 4;
   int64 reroute_server_id = 5;
+  bool succ = 6;
 }
 
 message ReadResponse {
   int64 server_id = 1;
   ReadItem item = 2;
   string metadata = 3;
+  bool succ = 4;
 }
 
 message PutResponse {
@@ -55,6 +64,7 @@ message PutResponse {
   string metadata = 2; // message confirming delivery
   bool reroute = 3;
   int64 reroute_server_id = 4;
+  bool succ = 5;
 }
 
 message ReplicateResponse {
@@ -69,7 +79,7 @@ message KeyValStore {
 }
 
 message NoParams {
-
+  
 }
 
 message Memory {
@@ -85,6 +95,16 @@ message FailRequest {
   bool fail = 1;
 }
 
+message DataBunchResponse {
+  int64 sent_from = 3;
+  bool succ = 2;
+}
+
+message DataBunchRequest {
+  int64 sent_from = 1;
+  repeated PutRequest requests = 2;
+}
+
 
 service DynamoInterface {
 
@@ -94,13 +114,19 @@ service DynamoInterface {
 
     rpc Read (GetRequest) returns (ReadResponse);
 
+    rpc Heartbeat (HeartbeatRequest) returns (HeartbeatRequest);
+
     rpc Replicate (PutRequest) returns (ReplicateResponse);
+
+    rpc TransferData(DataBunchRequest) returns (DataBunchResponse);
 
     // debuggin functions
 
     rpc PrintMemory (NoParams) returns (MemResponse);
 
     rpc Fail (FailRequest) returns (FailRequest);
+
+    rpc Gossip(NoParams) returns (NoParams);
 
     rpc PutStreaming (stream PutRequest) returns (stream PutResponse);
 

@@ -90,7 +90,7 @@ def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List
     v_nodes_per_proc = round(total_v_nodes / params.num_proc)
     max_token = total_v_nodes - 1
     token2node = createtoken2node(membership_info) # could have multiple nodes for a single token
-    N = params.N # adding extra nodes to preference list, TODO: push to params
+    N = params.N
     n_per_token = round(N / v_nodes_per_proc)
     pref_list = set([])
     token_list = []
@@ -105,11 +105,14 @@ def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List
                 token_list.append(replic_token)
                 nodes_added += 1
 
-            if nodes_added == n_per_token:
+            if nodes_added == n_per_token-1:
                 break
 
             i += 1
     # Note: this will trigger if we do not have at least N unique replicas
+
+    pref_list.add(n_id)
+
     assert len(pref_list) >= params.N
 
     return pref_list, token_list
