@@ -2,7 +2,7 @@
 from dynamo_pb2_grpc import DynamoInterfaceServicer
 from typing import List, Tuple, Dict, Union
 from dynamo_pb2 import PutResponse, GetResponse, PutRequest, GetRequest, ReplicateResponse, MemResponse, ReadResponse, ReadItem, Memory, VectorClockItem, FailRequest, HeartbeatRequest, DataBunchRequest, DataBunchResponse
-from partitioning import createtoken2node, find_owner, get_ranges, get_preference_list_skip_unhealthy
+from partitioning import createtoken2node, find_owner, get_preference_list_for_token, get_ranges
 from structures import NetworkParams, Params, FutureInformation
 from typing import List, Tuple, Dict, Union, Set
 from dynamo_pb2_grpc import DynamoInterfaceStub
@@ -88,8 +88,8 @@ class DynamoNode(DynamoInterfaceServicer):
         self.fail = False
 
         # a list of > N nodes that are closest to current node, (clockwise)
-        self.big_pref_list, _ = get_preference_list_skip_unhealthy(n_id=n_id, membership_info=membership_information, params=params)
-        self.preference_list = list(self.big_pref_list)[:self.params.N]
+        # self.big_pref_list, _ = get_preference_list_skip_unhealthy(n_id=n_id, membership_info=membership_information, params=params)
+        # self.preference_list = list(self.big_pref_list)[:self.params.N]
 
         self.token2node = createtoken2node(membership_information)
 
@@ -362,7 +362,7 @@ class DynamoNode(DynamoInterfaceServicer):
             return self.reroute(node, "get")
 
         # if curr node is coordinator node
-        response = self.read(request)
+        response = self.read(request, req_token)
 
         return response
 
@@ -445,7 +445,7 @@ class DynamoNode(DynamoInterfaceServicer):
 
         # send request to all replica nodes
         logger.info(f"Replicating.... key={request.key}, val={request.val}")
-        response = self.replicate(request)
+        response = self.replicate(request, req_token)
         logger.info(f"Replication done ! {self.memory_of_replicas}")
 
         # return back to client with 
@@ -512,7 +512,7 @@ class DynamoNode(DynamoInterfaceServicer):
             logger.error("------------------This will always ERROR OUT")
             raise NotImplementedError
 
-    def read(self, request):
+    def read(self, request, token):
         """
         Read logic for dynamo. Assumes current node is the coordinator node.
         The request to replicate will be made asynchronously and after R replicas have 
@@ -529,7 +529,6 @@ class DynamoNode(DynamoInterfaceServicer):
         replica_lock = threading.Lock()
         completed_reps = 1
         fut2replica = {}
-        failed_nodes = {}
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
         fs = set([])
 
@@ -537,13 +536,15 @@ class DynamoNode(DynamoInterfaceServicer):
         item = self._get_from_hash_table(request.key).item
         items_lock = threading.Lock()
         items.append(item)
-        def get_callback(executor, fut2replica, token_used):
+
+        # Callback to handle success/failure of read_rpc requests
+        def get_callback(executor, fut2replica, tokens_used):
             nonlocal completed_reps
             nonlocal items
             def read_rpc_callback(f):
                 nonlocal executor
                 nonlocal fut2replica
-                nonlocal token_used
+                nonlocal tokens_used
                 nonlocal completed_reps
 
                 if self.read_failure(f):
@@ -560,10 +561,10 @@ class DynamoNode(DynamoInterfaceServicer):
                     self.update_failed_nodes(failed_node_to_add)
 
                     # get new candidate node from spare list
-                    new_n, new_token = self.get_spare_node(failed_node_to_add, token_used, req)
-                    
+                    new_n, new_token = self.get_spare_node(tokens_used)
+
                     # update used tokens memory
-                    token_used.append(new_token)
+                    tokens_used.append(new_token)
 
                     logger.info(f"New node selected for READ hinted handoff is {new_n}, firing request")
 
@@ -594,10 +595,10 @@ class DynamoNode(DynamoInterfaceServicer):
 
             return read_rpc_callback
 
-        pref_list, tokens_used = self.get_top_N_healthy_pref_list()
-        callback = get_callback(executor, fut2replica, tokens_used)
+        pref_list, pref_node_list = self.get_top_N_healthy_pref_list(token)
+        callback = get_callback(executor, fut2replica, pref_list)
         logger.info(f"[Coordinate READ]Pref list at {self.view[self.n_id]} is {pref_list}")
-        for p in pref_list:
+        for p in pref_node_list:
             # nessesary for storing in replica memory stores
             request.coord_nid = self.n_id
 
@@ -661,7 +662,7 @@ class DynamoNode(DynamoInterfaceServicer):
             self.failed_nodes.add(node)
         self.failed_node_lock.release()
     
-    def get_spare_node(self, token_fail, tokens_used: List[int],  req: PutRequest):
+    def get_spare_node(self, tokens_used: List[int]):
         """
         Move up the list and get a node that has not been used by the current request.
         This node will be used in the hinted handoff
@@ -677,34 +678,34 @@ class DynamoNode(DynamoInterfaceServicer):
         while True:
             new_token = (last_token_used + 1) % self.params.num_proc
             new_node = self.token2node[new_token]
-            if new_node not in nodes_used:
+            self.failed_node_lock.acquire()
+            if new_node not in nodes_used and new_node not in self.failed_nodes:
+                self.failed_node_lock.release()
                 token_used = new_token
                 break
-            # if this new node is not being used in this request, then use it.
+            self.failed_node_lock.release()
 
         return new_node, token_used
 
-    def get_top_N_healthy_pref_list(self):
+    def get_top_N_healthy_pref_list(self, token):
         """
         If node is unhealthy in ring, then go ahead in ring until we get to healthy node
         """
-        # logger.info("In this")
         self.failed_node_lock.acquire()
-        pref_list, token_list = get_preference_list_skip_unhealthy(n_id=self.n_id, membership_info=self.membership_information, params=self.params, unhealthy_nodes=self.failed_nodes)
+        # pref_list, token_list = get_preference_list_skip_unhealthy(n_id=self.n_id, membership_info=self.membership_information, params=self.params, unhealthy_nodes=self.failed_nodes)
+        pref_list, node_list = get_preference_list_for_token(token=token, token2node=self.token2node, params=self.params, unhealthy_nodes=self.failed_nodes)
         self.failed_node_lock.release()
-        return pref_list, token_list
-    
+        return pref_list, node_list
+
     def read_failure(self, fut):
         ret = fut.exception() is None
         if not fut.exception():
             res = fut.result()
             if res.succ:
                 return False
-        
         return True
 
-
-    def replicate(self, request):
+    def replicate(self, request, token):
         """
         Replication logic for dynamo DB. Assumes current node is the coordinator node.
         The request to replicate will be made asynchronously and after R replicas have 
@@ -715,11 +716,10 @@ class DynamoNode(DynamoInterfaceServicer):
         replica_lock = threading.Lock()
         completed_reps = 1
         fut2replica = {}
-        failed_nodes = {}
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
         fs = set([])
 
-        def get_callback(executor, fut2replica, failed_node, token_used):
+        def get_callback(executor, fut2replica, tokens_used):
             # logger.info(f"Completed_reps !! {completed_reps}")
             nonlocal completed_reps
             def write_rpc_callback(f):
@@ -733,9 +733,8 @@ class DynamoNode(DynamoInterfaceServicer):
                 """
                 nonlocal executor
                 nonlocal fut2replica
-                nonlocal failed_nodes
                 nonlocal completed_reps
-                nonlocal token_used
+                nonlocal tokens_used
                 if f.exception():
                     logger.info(f"Future Failed !!")
 
@@ -755,10 +754,10 @@ class DynamoNode(DynamoInterfaceServicer):
                     self.update_failed_nodes(failed_node_to_add)
 
                     # get new candidate node from spare list
-                    new_n, new_token = self.get_spare_node(failed_node_to_add, token_used, req)
-                    
+                    new_n, new_token = self.get_spare_node(tokens_used)
+
                     # update used tokens memory
-                    token_used.append(new_token)
+                    tokens_used.append(new_token)
 
                     logger.info(f"New node selected for hinted handoff is {new_n}")
 
@@ -784,13 +783,11 @@ class DynamoNode(DynamoInterfaceServicer):
             return write_rpc_callback
 
         # get top N healthy nodes
-        pref_list, token_used = self.get_top_N_healthy_pref_list()
+        pref_list, pref_node_list = self.get_top_N_healthy_pref_list(token)
+        callback = get_callback(executor, fut2replica, pref_list)
 
-        callback = get_callback(executor, fut2replica, failed_nodes, token_used)
-        
-
-        logger.info(f"Pref List is  {pref_list}")
-        for p in pref_list:
+        logger.info(f"Tokens in pref_list are {pref_list}, and Nodes in pref_list are {pref_node_list}")
+        for p in pref_node_list:
             # nessesary for storing in replica memory stores
             request.coord_nid = self.n_id
 
@@ -849,15 +846,15 @@ class DynamoNode(DynamoInterfaceServicer):
     
 
     # Debugging Functions
-
     def PrintMemory(self, request, context):
         """
         Prints current state of the node
         function meant for debugging purposes
         """
         logger.info("-------------------------------------------")
-        logger.info(f"Information for {self.n_id}")
-        logger.info(f"Preference List: {self.preference_list}")
+        logger.info(f"Information for tokens of node {self.n_id}")
+        for token in self.membership_information[self.n_id]:
+            logger.info(f"For token {token}, preference List: {get_preference_list_for_token(token, self.token2node, self.params)}")
         logger.info("The memory store for current node:")
         for key, val in self.memory_of_node.items():
             logger.info(f"Key: {key} | Val: {val.val}")

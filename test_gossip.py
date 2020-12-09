@@ -7,6 +7,10 @@ import time
 from spawn import start_db, start_db_background
 from structures import NetworkParams, Params
 import time
+import logging
+
+logger = logging.getLogger('dynamo_node')
+logger.setLevel(logging.INFO)
 
 def test_gossip():
     num_tasks = 2

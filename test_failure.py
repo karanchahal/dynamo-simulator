@@ -69,5 +69,7 @@ def test_failure():
     e = time.time()
     print(f"Time taken {e - s} secs")
 
+    print('\n------Test failure passed------\n')
+
 
 test_failure()
