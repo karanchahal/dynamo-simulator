@@ -1,5 +1,5 @@
 # dynamo-clone
-A clone for Dynamo DB.
+A clone for Dynamo DB, and a simulator to setup Dynamo with different configurations and experiment with them.
 
 ## Dynamo
 To start, run ```sh gen_proto.sh``` to generate the protobuf files. 
