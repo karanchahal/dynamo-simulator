@@ -6,8 +6,7 @@ from concurrent import futures
 from client_dynamo import client_put, client_get_memory
 import time
 import random 
-from spawn import start_db
-from structures import Params
+import concurrent
 
 def parallel_runner_old(num_tasks=4):
     s = time.time()
@@ -35,7 +34,7 @@ def timed(func):
         return elapsed, res
     return _w
 
-def run_parallel(requests, requests_params, key=1, val="1", start_port=2333):
+def run_parallel(requests, requests_params, key=1, val="1", start_port=2333, as_np=True):
     # start = time.time()
     executor = futures.ThreadPoolExecutor(max_workers=1)
     fut = set([])
@@ -43,8 +42,21 @@ def run_parallel(requests, requests_params, key=1, val="1", start_port=2333):
         fut.add(executor.submit(timed(request), **request_params))
 
     durations = []
-    for it in futures.as_completed(fut, timeout=100):
-        duration, _ = it.result()
-        durations.append(duration)
+    responses = []
+    try:
+        for it in futures.as_completed(fut, timeout=0.5):
+            if not it.exception():
+                duration, response = it.result()
+                durations.append(duration)
+                responses.append(response)
+            else:
+                print('exception in future')
+    except concurrent.futures.TimeoutError:
+        print('timeout')
+        pass
 
-    return np.array(durations)
+    # print(f'durations: {durations}')
+    if as_np:
+        durations = np.array(durations)
+    print(len(durations), durations)
+    return durations, responses
