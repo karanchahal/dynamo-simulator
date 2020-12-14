@@ -15,6 +15,11 @@ import time
 import multiprocessing
 import datetime
 
+
+import logging
+logger = logging.getLogger('dynamo_node')
+logger.setLevel(logging.INFO)
+
 _ONE_DAY = datetime.timedelta(days=1)
 
 def _wait_forever(server):
@@ -115,6 +120,7 @@ def start_db_multiprocess(params: Params, membership_information: Dict[int, List
 def start_db_background(params: Params, membership_information: Dict[int, List[int]], network_params: NetworkParams, num_tasks:int = 2, wait: bool = False, start_port: int = 2333):
     executor = futures.ThreadPoolExecutor(max_workers=num_tasks)
     server = executor.submit(start_db, params, membership_information, network_params, wait, start_port)
+    
     return server
 
 def start_db_background_multiprocess(params: Params, membership_information: Dict[int, List[int]], network_params: NetworkParams, num_tasks:int = 2, wait: bool = False, start_port: int = 2333):
@@ -154,5 +160,6 @@ def init_server():
     }
     network_params = NetworkParams(network_params)
     start_db_background_multiprocess(params, membership_information, network_params)
+    # start_db_background(params, membership_information, network_params, wait=True)
 
 init_server()
