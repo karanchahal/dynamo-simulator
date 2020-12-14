@@ -161,5 +161,3 @@ def init_server():
     network_params = NetworkParams(network_params)
     start_db_background_multiprocess(params, membership_information, network_params)
     # start_db_background(params, membership_information, network_params, wait=True)
-
-init_server()

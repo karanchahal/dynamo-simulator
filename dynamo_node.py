@@ -349,8 +349,7 @@ class DynamoNode(DynamoInterfaceServicer):
         response = ReplicateResponse(server_id=self.n_id, 
                     metadata="Replication successful", 
                     succ=True)
-        
-=        
+             
         return response
 
     def _get_from_memory(self, request: GetRequest):
