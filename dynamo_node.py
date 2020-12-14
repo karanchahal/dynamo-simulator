@@ -587,7 +587,7 @@ class DynamoNode(DynamoInterfaceServicer):
                     items.append(item)
                     items_lock.release()
 
-                    logger.info(f"[READ callback] Successful {completed_reps} / {self.params.R}")
+                    logger.info(f"[READ callback] Successful {completed_reps} / {self.params.N}")
 
                     if completed_reps == self.params.N:
                         # this means our request is successfully replicated, we can RIP !

@@ -44,7 +44,7 @@ def run_parallel(requests, requests_params, key=1, val="1", start_port=2333, as_
     durations = []
     responses = []
     try:
-        for it in futures.as_completed(fut, timeout=0.5):
+        for it in futures.as_completed(fut):
             if not it.exception():
                 duration, response = it.result()
                 durations.append(duration)
