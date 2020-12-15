@@ -107,12 +107,10 @@ class DynamoNode(DynamoInterfaceServicer):
         # keep track of all tokems used by a request
         self.tokens_used: Dict[int, List[int]] = {}
 
-        print(f"here {self.params.gossip}")
         # gossip protocol
         if self.params.gossip == True:
             self.start_gossip_protocol()
         
-        print("not here")
 
     def scan_and_send(self, n_id):
         vals_to_send = []
@@ -245,7 +243,7 @@ class DynamoNode(DynamoInterfaceServicer):
                 req.hinted_handoff = -1
                 n_id = find_owner(key, self.params, self.token2node)
                 if n_id != self.n_id:
-                    self._add_to_replica_hash_table(req, n_id)
+                    self._add_to_hash_table(req, add_to_replica=True, coord_id=n_id)
                 else:
                     self._add_to_hash_table(req)
             
@@ -296,7 +294,12 @@ class DynamoNode(DynamoInterfaceServicer):
             logger.info(f"Node {self.n_id} at {self.view[self.n_id]} is set to fail, fail it !")
             raise concurrent.futures.CancelledError # retirning None will result in failure
         try:
-            response: ReadResponse = self._get_from_hash_table(request.key, coord_nid=request.coord_nid, from_replica=True)
+            req_token = request.key // self.params.Q
+            node = self.token2node[req_token]
+            if self.n_id == node:
+                response = self._get_from_hash_table(request.key)
+            else:  
+                response = self._get_from_hash_table(request.key, coord_nid=request.coord_nid, from_replica=True)
             return response
         except:
             logger.error(f"----Exception {request.key} Nid: {self.n_id}")
@@ -308,7 +311,7 @@ class DynamoNode(DynamoInterfaceServicer):
         """
         Put Request
         """
-        logger.info(f"[Put] called for key {request.key} at node {self.n_id}")
+        logger.info(f"[Put] called for key {request.key} at node {self.n_id} at port {self.view[self.n_id]}")
         self._check_add_latency()
         if self.fail:
             logger.info(f"Node {self.n_id} is set to fail")
@@ -330,15 +333,23 @@ class DynamoNode(DynamoInterfaceServicer):
         if self.fail:
             logger.info(f"Node {self.n_id} is set to fail, fail it !")
             raise concurrent.futures.CancelledError # retirning None will result in failure
+        
+        # find token for key
+        req_token = request.key // self.params.Q
+
+        # find node for token
+        node = self.token2node[req_token]
 
         # add to memory
-        self._add_to_replica_hash_table(request, request.coord_nid)
-
+        if self.n_id == node:
+            self._add_to_hash_table(request)
+        else:
+            self._add_to_hash_table(request, add_to_replica=True, coord_id=request.coord_nid)
         # construct replicate response
         response = ReplicateResponse(server_id=self.n_id, 
                     metadata="Replication successful", 
                     succ=True)
-        
+             
         return response
 
     def _get_from_memory(self, request: GetRequest):
@@ -356,8 +367,10 @@ class DynamoNode(DynamoInterfaceServicer):
         # find node for token
         node = self.token2node[req_token]
 
+        pref_list_for_token, node_list = self.get_top_N_healthy_pref_list(req_token)
+
         # if curr node is not the coordinator
-        if self.n_id != node:
+        if self.n_id not in node_list:
             # this request needs to be rerouted to first node in nodes
             return self.reroute(node, "get")
 
@@ -385,28 +398,27 @@ class DynamoNode(DynamoInterfaceServicer):
             item=ReadItem(val=put_request.val, context=put_request.context),
             metadata="success", succ=True)
 
-    def _add_to_hash_table(self, request):
+    def _add_to_hash_table(self, request, add_to_replica=False, coord_id=None):
         """
         Adds request to in memory hash table.
         """
-        self.memory_of_node_lock.acquire()
-        self.memory_of_node[request.key] = request
-        self.memory_of_node_lock.release()
-    
-    def _add_to_replica_hash_table(self, request, coord_nid):
-        """
-        Adds request to in memory replicated hash table.
-        """
-        self.memory_of_replicas_lock.acquire()
-        if coord_nid not in self.memory_of_replicas:
-            self.memory_of_replicas[coord_nid] = Memory(mem={
-                request.key: request
-            })
+        if not add_to_replica:
+            self.memory_of_node_lock.acquire()
+            self.memory_of_node[request.key] = request
+            self.memory_of_node_lock.release()
         else:
-            mem_dict = dict(self.memory_of_replicas[coord_nid].mem)
-            mem_dict[request.key] = request
-            self.memory_of_replicas[coord_nid] = Memory(mem=mem_dict)
-        self.memory_of_replicas_lock.release()
+            self.memory_of_replicas_lock.acquire()
+
+            if coord_id not in self.memory_of_replicas:
+                self.memory_of_replicas[coord_id] = Memory(mem={
+                    request.key: request
+                })
+            else:
+                mem_dict = dict(self.memory_of_replicas[coord_id].mem)
+                mem_dict[request.key] = request
+                self.memory_of_replicas[coord_id] = Memory(mem=mem_dict)
+
+            self.memory_of_replicas_lock.release()
 
 
     def _add_to_memory(self, request, request_type: str):
@@ -430,9 +442,9 @@ class DynamoNode(DynamoInterfaceServicer):
         # find node for token
         node = self.token2node[req_token]
 
-
+        pref_list_for_token, node_list = self.get_top_N_healthy_pref_list(req_token)
         # if curr node is not the coordinator
-        if self.n_id != node:
+        if self.n_id not in node_list:
             # this request needs to be rerouted to first node in nodes
             return self.reroute(node, request_type)
 
@@ -440,8 +452,11 @@ class DynamoNode(DynamoInterfaceServicer):
         # update context
         self._update_clock(request.context.clock)
 
-        # store it
-        self._add_to_hash_table(request)
+        # store it, in replica memory or main memory
+        if node == self.n_id:
+            self._add_to_hash_table(request)
+        else:
+            self._add_to_hash_table(request, add_to_replica=True, coord_id=node)
 
         # send request to all replica nodes
         logger.info(f"Replicating.... key={request.key}, val={request.val}")
@@ -533,7 +548,14 @@ class DynamoNode(DynamoInterfaceServicer):
         fs = set([])
 
         # Read data on current node
-        item = self._get_from_hash_table(request.key).item
+        req_token = request.key // self.params.Q
+        main_node = self.token2node[req_token]
+
+        if main_node != self.n_id:
+            item = self._get_from_hash_table(request.key, coord_nid=main_node, from_replica=True).item
+        else:
+            item = self._get_from_hash_table(request.key).item
+
         items_lock = threading.Lock()
         items.append(item)
 
@@ -587,7 +609,7 @@ class DynamoNode(DynamoInterfaceServicer):
                     items.append(item)
                     items_lock.release()
 
-                    logger.info(f"[READ callback] Successful {completed_reps} / {self.params.R}")
+                    logger.info(f"[READ callback] Successful {completed_reps} / {self.params.N}")
 
                     if completed_reps == self.params.N:
                         # this means our request is successfully replicated, we can RIP !
@@ -597,10 +619,10 @@ class DynamoNode(DynamoInterfaceServicer):
 
         pref_list, pref_node_list = self.get_top_N_healthy_pref_list(token)
         callback = get_callback(executor, fut2replica, pref_list)
-        logger.info(f"[Coordinate READ]Pref list at {self.view[self.n_id]} is {pref_list}")
+        logger.info(f"[Coordinate READ] Pref list at {self.view[self.n_id]} is {pref_list}")
         for p in pref_node_list:
             # nessesary for storing in replica memory stores
-            request.coord_nid = self.n_id
+            request.coord_nid = main_node
 
             if p != self.n_id:
                 # assuming no failures
@@ -736,7 +758,6 @@ class DynamoNode(DynamoInterfaceServicer):
                 nonlocal completed_reps
                 nonlocal tokens_used
                 if f.exception():
-                    logger.info(f"Future Failed !!")
 
                     # get all information pertinent to future
                     future_information = fut2replica[f]
@@ -789,7 +810,7 @@ class DynamoNode(DynamoInterfaceServicer):
         logger.info(f"Tokens in pref_list are {pref_list}, and Nodes in pref_list are {pref_node_list}")
         for p in pref_node_list:
             # nessesary for storing in replica memory stores
-            request.coord_nid = self.n_id
+            request.coord_nid = self.token2node[token]
 
             if p != self.n_id:
                 # assuming no failures
@@ -801,7 +822,6 @@ class DynamoNode(DynamoInterfaceServicer):
                 fut.add_done_callback(callback)
                 fs.add(fut)
                 # assume no failures: TODO: fix
-
         # wait until max timeout, and check if W writes have succeeded, if yes then return else fail request
         itrs = concurrent.futures.as_completed(fs, timeout=self.params.w_timeout)
 
