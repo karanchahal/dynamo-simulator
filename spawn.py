@@ -129,27 +129,8 @@ def start_db_background_multiprocess(params: Params, membership_information: Dic
 
 
 
-def init_server():
-        
-    params = {
-        'num_proc' : 8,
-        'hash_size': 8, # 2^3 = 8 
-        'Q' : 16, # 
-        'N' : 4,
-        'w_timeout': 2,
-        'r_timeout': 2,
-        'R': 1,
-        'W': 3,
-        'gossip': False
-    }
-    network_params = {
-        'latency': 10,
-        'randomize_latency': False,
-        'drop_prob': 0
-    }
+def init_server(params, network_params):
 
-    params = Params(params)
-    network_params = NetworkParams(network_params)
     membership_information = init_membership_list(params)
 
     network_params = {
@@ -157,7 +138,7 @@ def init_server():
         'randomize_latency': False,
         'drop_prob': 0
     }
-    logging.basicConfig(filename='dynamo_node.log', level=logging.INFO)
+    logging.basicConfig(filename='dynamo_node.log', level=logging.DEBUG)
     logger = logging.getLogger('dynamo_node')
 
     network_params = NetworkParams(network_params)

@@ -129,6 +129,7 @@ def get_preference_list_for_token(token: int, token2node: Dict[int,int], params:
     """
     Using Strategy 3 of the consistent hashing paradigm, we walk the ring in a clockwise direction and pick the next 'N-1' tokens belonging to a node
     different from the current node. In order to account for failures, we skip over tokens belonging to the unhealthy nodes
+    Note: Beware that this can return less than N healthy nodes, if the system isn't healthy.
     """
     key_space = pow(2, params.hash_size)
     total_v_nodes = round(key_space / params.Q)
@@ -137,15 +138,15 @@ def get_preference_list_for_token(token: int, token2node: Dict[int,int], params:
     pref_list = [token]
     node_list = [curr_nid]
     replica_token = token
-
-    while True:
-        replica_token = (replica_token+1) % total_v_nodes
+    replica_token = (replica_token+1) % total_v_nodes
+    while replica_token != token:
         n = token2node[replica_token]
         if (n != curr_nid) and (n not in node_list) and (n not in unhealthy_nodes):
             pref_list.append(replica_token)
             node_list.append(n)
         if len(node_list) == params.N: # can be chanced to params.num_proc if we want more than N nodes returned in pref_list
             break
+        replica_token = (replica_token+1) % total_v_nodes
 
     return pref_list, node_list
 
