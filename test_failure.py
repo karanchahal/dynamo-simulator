@@ -22,7 +22,8 @@ def test_failure():
         'r_timeout': 2,
         'R': 3,
         'W': 3,
-        'gossip': False
+        'gossip': False,
+        'update_failure_on_rpcs': True
     }
     membership_information = {
         0: [1], # key space -> (2,4]
