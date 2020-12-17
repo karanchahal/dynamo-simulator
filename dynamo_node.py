@@ -226,7 +226,7 @@ class DynamoNode(DynamoInterfaceServicer):
 
                 # sleep for 2 seconds
                 # time.sleep(2)
-                time.sleep(random.uniform(1, 2))
+                time.sleep(random.uniform(0.1, 0.2))
 
         fut = executor.submit(ping_random_node)
 
@@ -864,7 +864,7 @@ class DynamoNode(DynamoInterfaceServicer):
                     # add callback
                     fut.add_done_callback(write_rpc_callback)
 
-                    # add update information about new future in case this fails too
+                    # add update information about new future in case this fails too: TODO: should add a lock
                     fut2replica[fut] = FutureInformation(req=req, hinted_handoff=new_n, original_node=future_information.original_node)
 
                 else:
