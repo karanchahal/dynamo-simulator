@@ -12,6 +12,7 @@ params = Params({
     'W': 4,
     'gossip': True,
     'update_failure_on_rpcs': False,
+    'gossip_update_time': (0.5, 0.8)
 })
 
 network_params = NetworkParams({
