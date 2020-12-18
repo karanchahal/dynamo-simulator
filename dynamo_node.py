@@ -381,7 +381,7 @@ class DynamoNode(DynamoInterfaceServicer):
         if self.n_id not in node_list:
             # this request needs to be rerouted to first node in nodes
             self.logger.debug(f"6 {self.identity(request)}| In [_get_from_memory]")
-            return self.reroute(node, "get")
+            return self.reroute(node, "get", node_list)
         self.logger.debug(f"7 {self.identity(request)}| In [_get_from_memory]")
         # if curr node is coordinator node
         response = self.read(request, req_token)
@@ -477,7 +477,7 @@ class DynamoNode(DynamoInterfaceServicer):
         if self.n_id not in node_list:
             # this request needs to be rerouted to first node in nodes
             # get random healthy node in perference list that is not bad
-            return self.reroute(node, request_type)
+            return self.reroute(node, request_type, node_list)
 
         # if curr node is coordinator node...
         # update context
@@ -540,7 +540,7 @@ class DynamoNode(DynamoInterfaceServicer):
         # If not found
         clock.append(VectorClockItem(server_id=str(self.n_id), count=1))
 
-    def reroute(self, node: int, request_type: str) -> Union[PutResponse, GetResponse]:
+    def reroute(self, node: int, request_type: str, node_list: List[int]) -> Union[PutResponse, GetResponse]:
         """
         Reroutes the request, gives a rejection signal to the client,
         informs the client on which node to hit.
@@ -548,11 +548,11 @@ class DynamoNode(DynamoInterfaceServicer):
         request_type = (get/put)
         """
         assert(request_type == "get" or request_type == "put")
-        self.logger.info(f'Rerouting to {self.view[node]}...')
+        self.logger.info(f'Rerouting to {node_list[0]}...') #TODO: What if the first node has failed in the meantime? Keep re-routing until success?
         if request_type == "put":
-            return PutResponse(server_id=self.n_id, metadata="needs to reroute !", reroute=True, reroute_server_id=self.view[node])
+            return PutResponse(server_id=self.n_id, metadata="needs to reroute !", reroute=True, reroute_server_id=node_list[0])
         elif request_type == "get":
-            return GetResponse(server_id=self.n_id, items=None, metadata="needs to reroute!", reroute=True, reroute_server_id=self.view[node])
+            return GetResponse(server_id=self.n_id, items=None, metadata="needs to reroute!", reroute=True, reroute_server_id=node_list[0])
         else:
             self.logger.error("Rerouting error, wrong params should be get/put")
             raise NotImplementedError
@@ -718,6 +718,8 @@ class DynamoNode(DynamoInterfaceServicer):
         items_lock.acquire()
         filtered_items = self._filter_latest(items)
         items_lock.release()
+
+        print(f"Proportion of ")
 
         response = GetResponse(server_id=self.n_id, items=filtered_items, metadata="success", reroute=False, reroute_server_id=-1, succ=True)
         return response
