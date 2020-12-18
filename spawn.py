@@ -133,14 +133,11 @@ def init_server(params, network_params):
 
     membership_information = init_membership_list(params)
 
-    network_params = {
-        'latency': 10,
-        'randomize_latency': False,
-        'drop_prob': 0
-    }
     logging.basicConfig(filename='dynamo_node.log', level=logging.DEBUG)
     logger = logging.getLogger('dynamo_node')
+    logger.setLevel(logging.DEBUG)
 
-    network_params = NetworkParams(network_params)
+    logger.debug("Testing...")
+
     start_db_background_multiprocess(params, membership_information, network_params, logger)
-    # start_db_background(params, membership_information, network_params, wait=True)
+    # start_db_background(params, membership_information, network_params, wait=True, logger=logger)
