@@ -7,8 +7,13 @@ import time
 from spawn import start_db, start_db_background
 from structures import NetworkParams, Params
 import time
+import logging 
 
 def test_failure():
+
+    logging.basicConfig(filename='failure.log', level=logging.DEBUG)
+    logger = logging.getLogger('failure.log')
+
     num_tasks = 2
     executor = futures.ThreadPoolExecutor(max_workers=num_tasks)
 
@@ -22,7 +27,8 @@ def test_failure():
         'r_timeout': 2,
         'R': 3,
         'W': 3,
-        'gossip': False
+        'gossip': False,
+        'update_failure_on_rpcs': True
     }
     membership_information = {
         0: [1], # key space -> (2,4]
@@ -39,7 +45,7 @@ def test_failure():
     params = Params(params)
 
     network_params = NetworkParams(network_params)
-    server = start_db_background(params, membership_information, network_params, num_tasks=2)
+    server = start_db_background(params, membership_information, network_params, num_tasks=2, logger=logger)
 
     time.sleep(1)
 
@@ -68,6 +74,8 @@ def test_failure():
     print(f"Get response {response}")
     e = time.time()
     print(f"Time taken {e - s} secs")
+
+    print('\n------Test failure passed------\n')
 
 
 test_failure()

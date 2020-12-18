@@ -14,8 +14,8 @@ def main():
 
     # start server
     params = {
-        'num_proc' : 4,
-        'hash_size': 3, # 2^3 = 8 
+        'num_proc' : 8,
+        'hash_size': 8, # 2^3 = 8 
         'Q' : 2, # 
         'N' : 2, # actually N-1, excluding coordinator node
         'w_timeout': 2,
@@ -32,12 +32,7 @@ def main():
     }
     print("constructing...")
     params = Params(params)
-    membership_information = {
-        0: [1], # key space -> (2,4]
-        1: [2], # key space -> (4,6]
-        2: [3], # key space -> (6,8]
-        3: [0] # key space -> (0,2]
-    }
+    membership_information = init_membership_list(params)
     network_params = NetworkParams(network_params)
     server = start_db_background(params, membership_information, network_params, num_tasks=2)
 
@@ -80,7 +75,7 @@ def main():
     assert response.items[0].val == val2
     assert response.items[0].context.clock[0].count == 2
 
-    print("\n-------Test get_put passed--------")
+    print("\n-------Test get_put passed--------\n")
 
 
 if __name__ == '__main__':

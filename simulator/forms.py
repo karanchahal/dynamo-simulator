@@ -39,7 +39,7 @@ class DynamoForm(FlaskForm):
     server_name = StringField('Name of your configuration', default="DynamoDB")
     num_proc = IntegerField('Number of nodes (1-10)', validators=[NumberRange(min=1, max=10)], default=4)
     hash_size = IntegerField('Number of bits in key space (1-20)', validators=[NumberRange(min=1, max=20)], default=3)
-    Q = IntegerField('Number of tokens per node', validators=[], default=2)
+    Q = IntegerField('Q', validators=[], default=2)
     N = IntegerField('N', validators=[], default=2)
     R = IntegerField('R', default=1)
     W = IntegerField('W', default=1)

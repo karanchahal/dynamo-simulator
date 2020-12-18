@@ -5,14 +5,18 @@ from concurrent import futures
 from client_dynamo import client_put, client_get_memory
 import time
 import random 
-from spawn import start_db
-from structures import Params
-
+from spawn import start_db, start_db_background
+from structures import Params, NetworkParams
+import logging
 
 def test_replication():
     """
     This tests that the server id replicating put requests correctly.
     """
+
+    logging.basicConfig(filename='replication.log', level=logging.DEBUG)
+    logger = logging.getLogger('replication.log')
+
     num_tasks = 2
     executor = futures.ThreadPoolExecutor(max_workers=num_tasks)
 
@@ -25,8 +29,10 @@ def test_replication():
         'w_timeout': 2,
         'R': 1,
         'W': 2,
-        'gossip': False
+        'gossip': False,
+        'update_failure_on_rpcs': False
     }
+    
     membership_information = {
         0: [1], # key space -> (2,4]
         1: [2], # key space -> (4,6]
@@ -34,7 +40,25 @@ def test_replication():
         3: [0] # key space -> (0,2]
     }
     params = Params(params)
-    server = executor.submit(start_db, params, membership_information)
+
+    # start server
+
+    membership_information = {
+        0: [1], # key space -> (2,4]
+        1: [2], # key space -> (4,6]
+        2: [3], # key space -> (6,8]
+        3: [0] # key space -> (0,2]
+    }
+
+    network_params = {
+        'latency': 0,
+        'randomize_latency': False,
+        'drop_prob': 0
+    }
+    network_params = NetworkParams(network_params)
+    server = start_db_background(params, membership_information, network_params, num_tasks=2, wait=False, logger=logger)
+
+    # server = executor.submit(start_db, params, membership_information)
 
     # fire client request
     ports = [2333,2334,2335,2336]

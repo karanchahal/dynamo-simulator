@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
 from structures import Params
 
 def is_pow_of_two(n: int) -> bool:
@@ -50,7 +50,7 @@ def createtoken2node(membership_info: Dict[int, List[int]]) -> Dict[int, int]:
     return token2node
 
 
-def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List[int]], params: Params, unhealthy_nodes: Set[int] = [], timeout=1):
+def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List[int]], params: Params, unhealthy_nodes: Set[int] = set(), timeout=1):
     '''
     Returns a pref list of size N (`N` specified in params).
 
@@ -85,40 +85,70 @@ def get_preference_list_skip_unhealthy(n_id: int, membership_info: Dict[int,List
     '''
     # get positions of each server in the ring
 
-    key_space = pow(2, params.hash_size) # 256
-    total_v_nodes = round(key_space / params.Q) # 128
-    v_nodes_per_proc = round(total_v_nodes / params.num_proc) # 128/8= 16
+    key_space = pow(2, params.hash_size)
+    total_v_nodes = round(key_space / params.Q)
+    v_nodes_per_proc = round(total_v_nodes / params.num_proc)
     token2node = createtoken2node(membership_info) # could have multiple nodes for a single token
-    N = params.N
-    n_per_token = round(N / v_nodes_per_proc) # will be 0 if N is < number of tokens per node
     pref_list = set([])
     token_list = []
 
-    print(f"Key space: {key_space}, Total V Nodes in ring: {total_v_nodes}, Tokens to 1 node: {v_nodes_per_proc}")
-    for token in membership_info[n_id]:
-        i = 1
-        nodes_added = 0
-        while True:
-            replic_token = (token+i) % total_v_nodes
-            n = token2node[replic_token]
-            if (n != n_id) and (n not in pref_list) and (n not in unhealthy_nodes):
-                pref_list.add(n)
-                token_list.append(replic_token)
-                nodes_added += 1
-
-            if nodes_added == n_per_token-1:
-                break
-            
-            print("end")
-
-            i += 1
-    # Note: this will trigger if we do not have at least N unique replicas
-
     pref_list.add(n_id)
+    # for token in membership_info[n_id]:
+    #     i = 1
+    #     nodes_added = 0
+    #     while True:
+    #         replic_token = (token+i) % total_v_nodes
+    #         n = token2node[replic_token]
+    #         if (n != n_id) and (n not in pref_list) and (n not in unhealthy_nodes):
+    #             pref_list.add(n)
+    #             token_list.append(replic_token)
+    #             nodes_added += 1
 
+    #         if nodes_added == params.num_proc - 1:
+    #             break
+
+    #         i += 1
+
+    nodes_added = 0
+    for replica_token in range(total_v_nodes):
+        n = token2node[replica_token]
+        if (n != n_id) and (n not in pref_list) and (n not in unhealthy_nodes):
+            pref_list.add(n)
+            token_list.append(replica_token)
+            nodes_added += 1
+
+        if nodes_added == params.num_proc - 1:
+            break
+
+    # Note: this will trigger if we do not have at least N unique replicas
     assert len(pref_list) >= params.N
-
     return pref_list, token_list
+
+
+def get_preference_list_for_token(token: int, token2node: Dict[int,int], params: Params, unhealthy_nodes: Set[int] = set(), timeout=1) -> Tuple[List[int], List[int]]:
+    """
+    Using Strategy 3 of the consistent hashing paradigm, we walk the ring in a clockwise direction and pick the next 'N-1' tokens belonging to a node
+    different from the current node. In order to account for failures, we skip over tokens belonging to the unhealthy nodes
+    Note: Beware that this can return less than N healthy nodes, if the system isn't healthy.
+    """
+    key_space = pow(2, params.hash_size)
+    total_v_nodes = round(key_space / params.Q)
+    curr_nid = token2node[token]
+
+    pref_list = [token]
+    node_list = [curr_nid]
+    replica_token = token
+    replica_token = (replica_token+1) % total_v_nodes
+    while replica_token != token:
+        n = token2node[replica_token]
+        if (n != curr_nid) and (n not in node_list) and (n not in unhealthy_nodes):
+            pref_list.append(replica_token)
+            node_list.append(n)
+        if len(node_list) == params.N: # can be chanced to params.num_proc if we want more than N nodes returned in pref_list
+            break
+        replica_token = (replica_token+1) % total_v_nodes
+
+    return pref_list, node_list
 
 def find_owner(key: int, params: Params, token2node: Dict[int, int]):
     """

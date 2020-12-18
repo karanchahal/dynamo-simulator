@@ -5,6 +5,7 @@ __pycache__/
 simulator/static/
 # C extensions
 *.so
+simulator/static/
 
 # Distribution / packaging
 .Python

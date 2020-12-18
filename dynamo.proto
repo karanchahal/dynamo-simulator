@@ -65,6 +65,7 @@ message PutResponse {
   bool reroute = 3;
   int64 reroute_server_id = 4;
   bool succ = 5;
+  VectorClock context = 6;
 }
 
 message ReplicateResponse {

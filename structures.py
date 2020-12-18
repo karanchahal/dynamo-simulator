@@ -46,6 +46,8 @@ class Params:
         self.w_timeout: int = None # the number of seconds the timeout for write replication is
         self.r_timeout: int = None # the number of seconds the timeout for read replication is
         self.gossip: bool = None # turn on gossip or not
+        self.update_failure_on_rpcs: bool = True # on failure of non gossip calls, update unhealthy nodes ?
+        self.gossip_update_time: Tuple[float, float] = (1, 2)
         self.__dict__ = d
 
     def __repr__(self):
