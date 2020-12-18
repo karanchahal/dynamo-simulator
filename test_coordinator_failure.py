@@ -7,10 +7,14 @@ import time
 from spawn import start_db, start_db_background
 from structures import NetworkParams, Params
 import time
+import logging
 
 def test_coordinator_failure():
     num_tasks = 2
     executor = futures.ThreadPoolExecutor(max_workers=num_tasks)
+
+    logging.basicConfig(filename='coord_fail.log', level=logging.DEBUG)
+    logger = logging.getLogger('coord_fail.log')
 
     # start server
     params = {
@@ -22,7 +26,8 @@ def test_coordinator_failure():
         'r_timeout': 2,
         'R': 3,
         'W': 3,
-        'gossip': False
+        'gossip': False,
+        'update_failure_on_rpcs': False
     }
     membership_information = {
         0: [1], # key space -> (2,4]
@@ -39,7 +44,7 @@ def test_coordinator_failure():
     params = Params(params)
 
     network_params = NetworkParams(network_params)
-    server = start_db_background(params, membership_information, network_params, num_tasks=2)
+    server = start_db_background(params, membership_information, network_params, num_tasks=2, logger=logger)
 
     time.sleep(1)
 
@@ -70,7 +75,7 @@ def test_coordinator_failure():
     e = time.time()
     print(f"Time taken {e - s} secs")
 
-    print('\n------Test failure passed------\n')
+    print('\n------Test coordinator passed------\n')
 
 
 test_coordinator_failure()

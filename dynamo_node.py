@@ -86,10 +86,6 @@ class DynamoNode(DynamoInterfaceServicer):
         # whether set node to fail
         self.fail = False
 
-        # a list of > N nodes that are closest to current node, (clockwise)
-        # self.big_pref_list, _ = get_preference_list_skip_unhealthy(n_id=n_id, membership_info=membership_information, params=params)
-        # self.preference_list = list(self.big_pref_list)[:self.params.N]
-
         self.token2node = createtoken2node(membership_information)
 
         # in memory data store of key, values
@@ -226,7 +222,7 @@ class DynamoNode(DynamoInterfaceServicer):
 
                 # sleep for 2 seconds
                 # time.sleep(2)
-                time.sleep(random.uniform(0.1, 0.2))
+                time.sleep(random.uniform(self.params.gossip_update_time[0], self.params.gossip_update_time[1]))
 
         fut = executor.submit(ping_random_node)
 
@@ -839,7 +835,6 @@ class DynamoNode(DynamoInterfaceServicer):
 
                     self.logger.debug(f"[{self.identity(request)}] Hinted handoff request is {req}")
 
-                    # TODO: update health of node
                     failed_node_to_add = future_information.hinted_handoff if future_information.hinted_handoff != -1 else future_information.original_node
 
                     self.logger.debug(f"[{self.identity(request)}] Failed node is {failed_node_to_add}")
@@ -897,7 +892,6 @@ class DynamoNode(DynamoInterfaceServicer):
                 # add callback
                 fut.add_done_callback(callback)
                 fs.add(fut)
-                # assume no failures: TODO: fix
         # wait until max timeout, and check if W writes have succeeded, if yes then return else fail request
         itrs = concurrent.futures.as_completed(fs, timeout=self.params.w_timeout)
 
@@ -918,17 +912,14 @@ class DynamoNode(DynamoInterfaceServicer):
                         self.logger.info(f"[{self.identity(request)}] Breaking out of loop after satisfying min replicated nodes")
                         failure = False
                         break
-                # TODO: store the futures that have not finished
             except concurrent.futures.TimeoutError:
                 # time has expired
                 failure = True
                 self.logger.error(f"[{self.identity(request)}] Time has expired !")
-                # TODO: fail request
 
         # fail if timeout or completed reps have not been done
         self.logger.info(f"[{self.identity(request)}] ----Completetd reps finally {completed_reps} Failure > {failure}, should we wait some more ?")
         
-        # TODO: add check for timeout too
         num_wait_times = 0
         while completed_reps < self.params.W and not failure:
             if num_wait_times % 100 == 0:
@@ -941,7 +932,6 @@ class DynamoNode(DynamoInterfaceServicer):
                 break
 
         if failure:
-            # TODO: implement succ or failure of put response
             return PutResponse(succ=False)
 
         # if we are here, we managed to replicate W nodes and the rest will be taken care of !

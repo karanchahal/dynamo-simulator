@@ -13,6 +13,9 @@ logger = logging.getLogger('dynamo_node')
 logger.setLevel(logging.INFO)
 
 def test_gossip():
+    logging.basicConfig(filename='gossip.log', level=logging.DEBUG)
+    logger = logging.getLogger('gossip.log')
+
     num_tasks = 2
     executor = futures.ThreadPoolExecutor(max_workers=num_tasks)
 
@@ -26,7 +29,8 @@ def test_gossip():
         'r_timeout': 2,
         'R': 3,
         'W': 3,
-        'gossip' : False
+        'gossip' : False,
+        'update_failure_on_rpcs': False
     }
     membership_information = {
         0: [1], # key space -> (2,4]
@@ -43,7 +47,7 @@ def test_gossip():
     params = Params(params)
 
     network_params = NetworkParams(network_params)
-    server = start_db_background(params, membership_information, network_params, num_tasks=2, wait=True)
+    server = start_db_background(params, membership_information, network_params, num_tasks=2, wait=True, logger=logger)
 
     time.sleep(1)
 
