@@ -206,6 +206,8 @@ class DynamoNode(DynamoInterfaceServicer):
 
             while True:
                 self.logger.debug(f"[ping_random_node] {self.n_id} Trying to send another heartbeat !")
+                time.sleep(random.uniform(self.params.gossip_update_time[0], self.params.gossip_update_time[1]))
+
                 if not self.fail:
                     n_id = self.n_id
                     while n_id == self.n_id:
@@ -219,10 +221,6 @@ class DynamoNode(DynamoInterfaceServicer):
                     mem_lock.acquire()
                     fut2req[fut] = n_id
                     mem_lock.release()
-
-                # sleep for 2 seconds
-                # time.sleep(2)
-                time.sleep(random.uniform(self.params.gossip_update_time[0], self.params.gossip_update_time[1]))
 
         fut = executor.submit(ping_random_node)
 
@@ -435,13 +433,12 @@ class DynamoNode(DynamoInterfaceServicer):
         Adds request to in memory hash table.
         """
         if not add_to_replica:
-            self.logger.debug(f"[GET] Here16: {request.key} | {self.n_id} | {self.view[self.n_id]}")
+            self.logger.debug(f"[_add_to_hash_table] Adding to node memory: {request.key} | {self.n_id} | {self.view[self.n_id]}")
             self.memory_of_node_lock.acquire()
             self.memory_of_node[request.key] = request
             self.memory_of_node_lock.release()
-            self.logger.debug(f"[GET] Here17: {request.key} | {self.n_id} | {self.view[self.n_id]}")
         else:
-            self.logger.debug(f"[GET] Here18: {request.key} | {self.n_id} | {self.view[self.n_id]}")
+            self.logger.debug(f"[_add_to_hash_table] Adding to replica memory: {request.key} | {self.n_id} | {self.view[self.n_id]}")
             self.memory_of_replicas_lock.acquire()
             if coord_id not in self.memory_of_replicas:
                 self.memory_of_replicas[coord_id] = Memory(mem={
@@ -452,7 +449,6 @@ class DynamoNode(DynamoInterfaceServicer):
                 mem_dict[request.key] = request
                 self.memory_of_replicas[coord_id] = Memory(mem=mem_dict)
             self.memory_of_replicas_lock.release()
-            self.logger.debug(f"[GET] Here19: {request.key} | {self.n_id} | {self.view[self.n_id]}")
 
 
     def _add_to_memory(self, request, request_type: str):
@@ -987,6 +983,11 @@ class DynamoNode(DynamoInterfaceServicer):
         if self.network_params is None:
             return
         if self.network_params.randomize_latency:
-            time.sleep(random.randint(0, self.network_params.latency) / 1000)
+            if self.network_params.distribution == 'uniform':
+                latency = random.randint(0, 2*self.network_params.latency) / 1000
+            else:
+                latency = random.gauss(self.network_params.latency, self.network_params.latency) / 1000
+                latency = max(0, latency)
+            time.sleep(latency)
         else:
             time.sleep(self.network_params.latency / 1000)

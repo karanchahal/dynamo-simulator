@@ -66,6 +66,7 @@ class NetworkParams:
     def __init__(self, d=None):
         self.latency: int = 0 # Maximum latency for one request
         self.randomize_latency: bool = False # A parameter to randomize the latency (uniformly between 0 - latency)
+        self.distribution: str = 'uniform'
         self.drop_prob: float = 0
         if d is not None:
             self.__dict__ = d
