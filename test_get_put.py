@@ -6,12 +6,14 @@ from client_dynamo import client_put, client_get, client_fail, client_get_memory
 import time
 from spawn import start_db, start_db_background
 from structures import NetworkParams, Params
+import logging 
 
 def main():
     """
     This tests that the get and put operations are working properly.
     """
-
+    logging.basicConfig(filename='get_put.log', level=logging.DEBUG)
+    logger = logging.getLogger('get_put.log')
     # start server
     params = {
         'num_proc' : 8,
@@ -22,7 +24,8 @@ def main():
         'r_timeout': 2,
         'R': 2,
         'W': 2,
-        'gossip': False
+        'gossip': False,
+        'update_failure_on_rpcs': True
     }
 
     network_params = {
@@ -34,7 +37,7 @@ def main():
     params = Params(params)
     membership_information = init_membership_list(params)
     network_params = NetworkParams(network_params)
-    server = start_db_background(params, membership_information, network_params, num_tasks=2)
+    server = start_db_background(params, membership_information, network_params, num_tasks=2, logger=logger)
 
     time.sleep(1)
 
