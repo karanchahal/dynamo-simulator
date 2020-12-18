@@ -1,6 +1,10 @@
 # An Implementation of DynamoDB
 This repository seeks to serve as an overview of the key aspects of Dynamo by diving straight into snippets of code.
 
+We also build a simulator that can spawn different dynamo instances and run basic queries on the key value store.
+
+![](screenshots/simulator.gif)
+
 ## Setup
 To install all dependencies, run the followign commands
 1. ```conda create -n dynamo python=3.6```
@@ -34,10 +38,14 @@ We test the folloing functionalities:
 3. A test (```test_gossip.py```) that tests the gossip protocol and checks for successful transfer of data to a previosuly failed node & successful deletion of hinted handoff data.
 4. A test that checks for replication logic (```test_replication.py```)
 
+## Consistent Hashing Utils
+
+These are given in the file ```partitioning.py```
+
 ## Data Structures and Objects
 
 - The objects transferred over the wire are mentioned in the ```dynamo.proto``` protobuf file. 
 - The other objects are mentioned in ```structures.py```.
 
 
-We have tried to document the code as much as possible to make ti easy to read. Please raise an issue if you think something is unclear and we shall fix it !
+We have tried to document the code as much as possible to make it easy to read. Please raise an issue if you think something is unclear and we shall fix it !

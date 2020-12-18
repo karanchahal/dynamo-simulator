@@ -21,6 +21,7 @@ from parallel_runner import run_parallel
 
 from threading import Thread
 import time
+import logging
 
 app = Flask(__name__)
 
@@ -65,6 +66,10 @@ def generate_plot(durations, label='', clear=True):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     global processes_future
+
+    logging.basicConfig(filename='simulator.log', level=logging.INFO)
+    logger = logging.getLogger('simulator.log')
+
     form = CombinedForm()
     message = ""
     if form.validate_on_submit():
@@ -78,7 +83,8 @@ def index():
             'W': form.dynamo_form.W.data,
             'w_timeout': form.dynamo_form.w_timeout.data,
             'r_timeout': form.dynamo_form.r_timeout.data,
-            'gossip': form.dynamo_form.gossip.data
+            'gossip': form.dynamo_form.gossip.data,
+            'update_failure_on_rpcs': False
         })
 
         print(params)
@@ -87,7 +93,7 @@ def index():
             'latency': form.network_form.latency.data,
             'randomize_latency': form.network_form.randomize_latency.data
         })
-        processes_future = start_db_background(params, membership_information, network_params, wait=True, start_port=START_PORT)
+        processes_future = start_db_background(params, membership_information, network_params, wait=True, start_port=START_PORT, logger=logger)
         session['server_name'] = form.dynamo_form.server_name.data
         session['params'] = params.__dict__
         session['network_params'] = network_params.__dict__
@@ -115,7 +121,7 @@ def client():
             else:
                 requests = [client_get]*form.num_requests.data
                 requests_params = [{'port': get_start_port(), 'client_id': CLIENT_ID, 'key': form.key.data} for _ in range(form.num_requests.data)]
-                durations = run_parallel(requests, requests_params, start_port=START_PORT)
+                durations, responses = run_parallel(requests, requests_params, start_port=START_PORT)
                 duration = sum(durations)*1000
                 stats = str(get_stats(durations))
                 url = generate_plot(durations, 'GET', form.clear.data)
@@ -127,7 +133,7 @@ def client():
             else:
                 requests = [client_put]*form.num_requests.data
                 requests_params = [{'port': get_start_port(), 'client_id': CLIENT_ID, 'key': form.key.data, 'val': form.val.data} for _ in range(form.num_requests.data)]
-                durations = run_parallel(requests, requests_params, start_port=START_PORT)
+                durations, responses = run_parallel(requests, requests_params, start_port=START_PORT)
                 duration = sum(durations)*1000
                 stats = str(get_stats(durations))
                 url = generate_plot(durations, 'PUT', form.clear.data)

@@ -21,7 +21,6 @@ def parallel_runner_old(num_tasks=4):
 
     done, not_done = futures.wait(fut)
     e = time.time()
-    # print(done)
     print(f"Time taken : {e - s} secs")
     print(f"Pending requests {not_done}")
 
