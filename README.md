@@ -3,7 +3,7 @@ This repository seeks to serve as an overview of the key aspects of Dynamo by di
 
 We also build a simulator that can spawn different dynamo instances and run basic queries on the key value store.
 
-![](screenshots/simulator.gif)
+![](screenshots/simulator_long.gif)
 
 ## Setup
 To install all dependencies, run the followign commands
