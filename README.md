@@ -49,3 +49,6 @@ These are given in the file ```partitioning.py```
 
 
 We have tried to document the code as much as possible to make it easy to read. Please raise an issue if you think something is unclear and we shall fix it !
+
+## Poster and Report
+You can find a [poster](https://github.com/karanchahal/dynamo-clone/blob/master/docs/dynamo_simulator_poster.pdf) and a [report](https://github.com/karanchahal/dynamo-clone/blob/master/docs/report.pdf) detailing the work in the ```docs``` directory.
