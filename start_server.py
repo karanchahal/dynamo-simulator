@@ -8,8 +8,8 @@ params = Params({
     'N' : 4,
     'w_timeout': 2,
     'r_timeout': 2,
-    'R': 1,
-    'W': 3,
+    'R': 3,
+    'W': 1,
     'gossip': True,
     'update_failure_on_rpcs': False,
     'gossip_update_time': (0.5, 0.8)
@@ -18,7 +18,7 @@ params = Params({
 network_params = NetworkParams({
     'latency': 10,
     'randomize_latency': False,
-    'distribution': 'uniform',
+    'distribution': 'normal',
     'drop_prob': 0
 })
 

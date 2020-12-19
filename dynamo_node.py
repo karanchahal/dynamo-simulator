@@ -503,14 +503,14 @@ class DynamoNode(DynamoInterfaceServicer):
         def clock_lt(c1, c2):
             for it2 in c2:
                 for it1 in c1:
-                    if it2.server_id == it1.server_id and it1.count > it2.count:
+                    if it2.server_id == it1.server_id and it1.count >= it2.count:
                         return False
             return True
 
         def clock_gt(c1, c2):
             for it2 in c2:
                 for it1 in c1:
-                    if it2.server_id == it1.server_id and it1.count < it2.count:
+                    if it2.server_id == it1.server_id and it1.count <= it2.count:
                         return False
             return True
 
@@ -524,7 +524,13 @@ class DynamoNode(DynamoInterfaceServicer):
                 pass
             else:
                 filtered_items.append(item)
-        
+
+        # count = len(items)
+        # for item in items:
+        #     if item.val != filtered_items[0].val:
+        #         count -= 1
+        # print(f"[Filter] Proportion of R with consistent: {count/len(items)}")
+
         return filtered_items
 
     def _update_clock(self, clock):

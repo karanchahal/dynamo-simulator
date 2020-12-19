@@ -49,13 +49,11 @@ def run_parallel(requests, requests_params, key=1, val="1", start_port=2333, as_
                 durations.append(duration)
                 responses.append(response)
             else:
-                print('exception in future')
+                print('exception in future:', it.exception())
     except concurrent.futures.TimeoutError:
         print('timeout')
         pass
 
-    # print(f'durations: {durations}')
     if as_np:
         durations = np.array(durations)
-    print(len(durations), durations)
     return durations, responses
